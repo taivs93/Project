@@ -1,0 +1,67 @@
+package taivs.project.service.report;
+
+import taivs.project.dto.request.ReportDTO;
+import taivs.project.dto.response.ReportResponseDTO;
+import taivs.project.entity.Customer;
+import taivs.project.entity.Report;
+import taivs.project.entity.User;
+import taivs.project.exception.DataNotFoundException;
+import taivs.project.exception.UnauthorizedAccessException;
+import taivs.project.repository.CustomerRepository;
+import taivs.project.repository.ReportRepository;
+import taivs.project.repository.UserRepository;
+import taivs.project.service.auth.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ReportServiceImpl implements ReportService {
+
+    @Autowired
+    private ReportRepository reportRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private AuthService authService;
+
+    private ReportResponseDTO toDTO(Report report){
+
+        return ReportResponseDTO.builder().id(report.getId()).customerId(report.getCustomer().getId())
+                .description(report.getDescription()).build();
+    }
+
+    public ReportResponseDTO insertReport(ReportDTO reportDTO){
+        User user = authService.getCurrentUser();
+        Customer customer = customerRepository.findById(reportDTO.getCustomerId()).orElseThrow(() -> new DataNotFoundException("Customer not found"));
+        if (!customer.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedAccessException("Not authorized to add this report");
+        }
+        Report newReport = Report.builder().customer(customer).user(user).description(reportDTO.getDescription()).build();
+        List<Report> reports = user.getReports();
+        reports.add(newReport);
+        List<Customer> customers = customerRepository.findByTel(user.getTel());
+        for (Customer c : customers) {
+            c.setReports(c.getReports());
+        }
+        user.setReports(reports);
+        reportRepository.save(newReport);
+        return toDTO(newReport);
+    }
+
+    public void deleteReport(Long id){
+        Report report = reportRepository.findById(id)
+                .orElseThrow(() -> new DataNotFoundException("Report not found"));
+        User user = authService.getCurrentUser();
+        if (!report.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedAccessException("Not authorized to delete this report");
+        }
+        reportRepository.delete(report);
+    }
+}
