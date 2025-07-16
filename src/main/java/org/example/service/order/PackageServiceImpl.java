@@ -12,6 +12,7 @@ import org.example.entity.*;
 import org.example.entity.Package;
 import org.example.exception.*;
 import org.example.repository.*;
+import org.example.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,19 +42,15 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private UserRepository userRepository;
     @Autowired private PackageProductRepository packageProductRepository;
     @Autowired private RoleRepository roleRepository;
+    @Autowired private AuthService authService;
 
-    private User getCurrentUser() {
-        String tel = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByTel(tel)
-                .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
-    }
     public Double getExtraFee(List<PackageProductDTO> items) {
         double weight = 0;
         for (PackageProductDTO item : items) {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new DataNotFoundException("Product not found: " + item.getProductId()));
 
-            User user = getCurrentUser();
+            User user = authService.getCurrentUser();
 
             if(!product.getUser().getId().equals(user.getId())) {
                 throw new UnauthorizedAccessException("Unauthorized product access");
@@ -70,7 +67,7 @@ public class PackageServiceImpl implements PackageService {
         double value = 0;
         for (PackageProductDTO item : items) {
             Product product = productRepository.findById(item.getProductId()).orElseThrow(() -> new DataNotFoundException("Product not found: " + item.getProductId()));
-            User user = getCurrentUser();
+            User user = authService.getCurrentUser();
 
             if(!product.getUser().getId().equals(user.getId())) {
                 throw new UnauthorizedAccessException("Unauthorized product access");
@@ -90,7 +87,7 @@ public class PackageServiceImpl implements PackageService {
 
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
@@ -153,7 +150,7 @@ public class PackageServiceImpl implements PackageService {
             throw new InvalidStatusTransitionException("Invalid status transition: " + pack.getStatus() + " -> " + newStatus);
         }
 
-        if (!Objects.equals(pack.getUser().getId(), getCurrentUser().getId())) {
+        if (!Objects.equals(pack.getUser().getId(), authService.getCurrentUser().getId())) {
             throw new UnauthorizedAccessException("Not authorized to update this package");
         }
 
@@ -171,14 +168,16 @@ public class PackageServiceImpl implements PackageService {
                                                    String sortField, String sortDirection) {
         if (size > 20) size = 20;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        return packageRepository.findByCustomerTelOrId(customerTel, id, pageable)
+        User user = authService.getCurrentUser();
+        return packageRepository.findByCustomerTelOrId(user.getId(),customerTel, id, pageable)
                 .map(this::toResponse);
     }
 
     public Page<PackageResponseDTO> searchDraftPackages(String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         if (size > 20) size = 20;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        return packageRepository.findDraftPackagesByCustomerTelOrId(customerTel, id, pageable)
+        User user = authService.getCurrentUser();
+        return packageRepository.findDraftPackagesByCustomerTelOrId(user.getId(),customerTel, id, pageable)
                 .map(this::toResponse);
     }
 
@@ -230,7 +229,7 @@ public class PackageServiceImpl implements PackageService {
 
     @Transactional
     public PackageResponseDTO submitDraft(Long draftId) {
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
 
         Package draft = packageRepository.findById(draftId)
                 .orElseThrow(() -> new DataNotFoundException("Draft not found"));
@@ -265,7 +264,7 @@ public class PackageServiceImpl implements PackageService {
         Package pack = packageRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Package not found"));
 
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
 
         if (!Objects.equals(pack.getUser().getId(), user.getId())) {
             throw new UnauthorizedAccessException("User not authorized to update this package");
@@ -320,13 +319,13 @@ public class PackageServiceImpl implements PackageService {
 
     public PackageResponseDTO getPackageById(Long id){
         org.example.entity.Package aPackage = packageRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (!user.equals(aPackage.getUser())) throw new UnauthorizedAccessException("Unauthorized");
         return toResponse(aPackage);
     }
 
     public Double getRevenue(@RequestParam String time){
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (time.equalsIgnoreCase("today")) return packageRepository.getTodayRevenue(user.getId());
         else if (time.equalsIgnoreCase("month")) {
             return packageRepository.getThisMonthRevenue(user.getId());
@@ -337,7 +336,7 @@ public class PackageServiceImpl implements PackageService {
     }
     @Override
     public PackageResponseDTO findPackageById(Long id) {
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         org.example.entity.Package order = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
         Role userRole = roleRepository.findByName("USER").orElseThrow(() -> new DataNotFoundException("Role not found"));
         if(user.getUserRoles().contains(userRole)  && !Objects.equals(order.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Unauthorized");

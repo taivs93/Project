@@ -19,5 +19,4 @@ public interface JwtService {
 
     Optional<Token> findTokenInDatabase(String token);
 
-    <T> T extractClaim(String token, Function<Claims, T> claimsResolver);
 }

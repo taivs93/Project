@@ -10,6 +10,8 @@ import java.util.List;
 @Builder
 public class CustomerResponseDTO {
 
+    private Long id;
+
     private String tel;
 
     private String type;

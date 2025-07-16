@@ -16,14 +16,16 @@ public interface PackageRepository extends JpaRepository<org.example.entity.Pack
     @Query("SELECT p FROM Package p " +
             "WHERE (:customer_tel IS NULL OR p.customer.tel = :customer_tel) " +
             "AND (:id IS NULL OR p.id = :id)" +
-            "AND p.isDraft = 0")
-    Page<Package> findByCustomerTelOrId(@Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
+            "AND p.isDraft = 0" +
+            "AND p.user.id = :userId")
+    Page<Package> findByCustomerTelOrId(@Param("userId") Long userId,@Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
 
     @Query("SELECT p FROM Package p " +
             "WHERE (:customer_tel IS NULL OR p.customer.tel = :customer_tel) " +
             "AND (:id IS NULL OR p.id = :id)" +
-            "AND p.isDraft = 1")
-    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
+            "AND p.isDraft = 1" +
+            "AND p.user.id = :userId")
+    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("userId") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
 
     @Query(value = """
      SELECT COALESCE(SUM(total_fee), 0)

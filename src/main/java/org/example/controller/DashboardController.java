@@ -64,5 +64,4 @@ public class DashboardController {
                 .data(roundedRevenue)
                 .build());
     }
-
 }

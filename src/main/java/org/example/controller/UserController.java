@@ -3,6 +3,7 @@ package org.example.controller;
 import jakarta.validation.Valid;
 import org.example.dto.request.NameChangeRequest;
 import org.example.dto.response.ResponseDTO;
+import org.example.service.customer.CustomerService;
 import org.example.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,18 +29,12 @@ public class UserController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("User name changed successfully").data(userService.changeUserName(req.getName())).build());
     }
 
-    @GetMapping("/get-customer-details-id/{id}")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> getCustomerDetailsById(@PathVariable Long id){
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get customer details successfully").data(userService.getCustomerDetails(id)).build());
+    @GetMapping("/get-user-details-by-id/{id}")
+    @PreAuthorize("hasRoles('ADMIN')")
+    public ResponseEntity<ResponseDTO> getUserDetailsById(@PathVariable Long id){
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get user details successfully").data(userService.getUserDetailsById(id)).build());
     }
 
-
-    @GetMapping("/get-customer-details-tel/{tel}")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> getCustomerDetailsByTel(@PathVariable String tel){
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get customer details successfully").data(userService.getCustomerDetails(tel)).build());
-    }
 
     @PatchMapping("/active-user/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -61,5 +56,6 @@ public class UserController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get all users successfully")
                 .data(userService.findAllUsers()).build());
     }
-
 }
+
+

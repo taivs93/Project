@@ -1,8 +1,7 @@
 package org.example.service.user;
 
-import org.example.dto.response.CustomerLiteDTO;
-import org.example.dto.response.CustomerResponseDTO;
 import org.example.dto.response.UserResponseDTO;
+import org.example.entity.User;
 
 import java.util.List;
 
@@ -16,9 +15,7 @@ public interface UserService {
 
     UserResponseDTO changeUserName(String name);
 
-    CustomerLiteDTO getCustomerDetails(Long id);
-
-    CustomerResponseDTO getCustomerDetails(String tel);
+    UserResponseDTO getUserDetailsById(Long id);
 
     List<UserResponseDTO> findAllUsers();
 }

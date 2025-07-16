@@ -21,8 +21,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p " +
             "WHERE (:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND (:barcode IS NULL OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :barcode, '%')))" +
-            "AND p.isDeleted = 0")
-    Page<Product> findByNameContainingAndBarcodeContaining(@Param("name") String name,@Param("barcode") String barcode, Pageable pageable);
+            "AND p.isDeleted = 0" +
+            "AND p.user.id = :id")
+    Page<Product> findByNameContainingAndBarcodeContaining(@Param("id") Long id ,@Param("name") String name,@Param("barcode") String barcode, Pageable pageable);
 
     @Query(value = "SELECT COUNT(*) FROM packages p " +
             "JOIN package_products pp ON p.id = pp.package_id " +
@@ -32,9 +33,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p.weight FROM Product p WHERE p.id = :productId")
     Double getWeightById(@Param("productId") Long productId);
-
-    @Query("SELECT p.price FROM Product p WHERE p.id = :productId")
-    Double getPriceById(@Param("productId") Long productId);
 
     Optional<Product> findByIdAndIsDeleted(Long id,byte isDeleted);
 

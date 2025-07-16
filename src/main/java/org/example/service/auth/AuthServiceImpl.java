@@ -44,7 +44,8 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    private User getCurrentUser() {
+    @Override
+    public User getCurrentUser() {
         String tel = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByTel(tel)
                 .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));

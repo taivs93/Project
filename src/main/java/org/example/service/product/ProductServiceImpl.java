@@ -9,6 +9,7 @@ import org.example.exception.*;
 import org.example.repository.ProductImageRepository;
 import org.example.repository.ProductRepository;
 import org.example.repository.UserRepository;
+import org.example.service.auth.AuthService;
 import org.example.service.cloudinary.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -37,11 +38,8 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductImageRepository productImageRepository;
 
-    private User getCurrentUser() {
-        String tel = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByTel(tel)
-                .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
-    }
+    @Autowired
+    private AuthService authService;
 
     private void checkProductOwnership(Product product, User user) {
         if (!Objects.equals(product.getUser().getId(), user.getId())) {
@@ -62,7 +60,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public Product createProduct(ProductDTO dto) {
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
 
         if (productRepository.existsByBarcodeAndUserId(dto.getBarcode(), user.getId())) {
             throw new ResourceAlreadyExistsException("Barcode already exists");
@@ -94,8 +92,8 @@ public class ProductServiceImpl implements ProductService {
         size = Math.min(size, 10);
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField);
         Pageable pageable = PageRequest.of(page, size, sort);
-
-        return productRepository.findByNameContainingAndBarcodeContaining(name, barcode, pageable)
+        User user = authService.getCurrentUser();
+        return productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
                 .map(this::toDTO);
     }
     public Page<ProductResponseDTO> topRevenueProducts(int page,int size){
@@ -130,7 +128,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findByIdAndIsDeleted(id, (byte) 0)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         checkProductOwnership(product, user);
 
         if (productRepository.countProductInPackage(id) > 0) {
@@ -155,7 +153,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findByIdAndIsDeleted(id, (byte) 0)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         checkProductOwnership(product, user);
 
         if (productRepository.countProductInPackage(id) > 0) {
@@ -168,7 +166,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public ProductImage createProductImage(Long productId, MultipartFile file) {
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
@@ -196,7 +194,7 @@ public class ProductServiceImpl implements ProductService {
         ProductImage image = productImageRepository.findById(imageId)
                 .orElseThrow(() -> new DataNotFoundException("Image not found"));
 
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (!image.getProduct().getUser().getId().equals(user.getId())) {
             throw new UnauthorizedAccessException("Not authorized to delete this image");
         }
@@ -208,7 +206,7 @@ public class ProductServiceImpl implements ProductService {
     public void deleteAllProductImages(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (!product.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedAccessException("Not authorized to delete this product");
         }
@@ -221,7 +219,7 @@ public class ProductServiceImpl implements ProductService {
 
     public ProductResponseDTO getProductById(Long id){
         Product product = productRepository.findByIdAndIsDeleted(id,(byte)0).orElseThrow(() -> new IllegalArgumentException("Product not found"));
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (!user.equals(product.getUser())) throw new UnauthorizedAccessException("You are unauthorized to get this Product");
         return toDTO(product);
     }

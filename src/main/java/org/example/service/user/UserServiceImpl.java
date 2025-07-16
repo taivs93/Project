@@ -1,18 +1,14 @@
 package org.example.service.user;
 
-
-import org.example.dto.response.CustomerLiteDTO;
-import org.example.dto.response.CustomerResponseDTO;
-import org.example.dto.response.ReportResponseDTO;
 import org.example.dto.response.UserResponseDTO;
-import org.example.entity.Customer;
-import org.example.entity.CustomerType;
 import org.example.entity.User;
 import org.example.exception.DataNotFoundException;
 import org.example.exception.ResourceAlreadyExistsException;
-import org.example.exception.UnauthorizedAccessException;
+
 import org.example.repository.CustomerRepository;
+import org.example.repository.TokenRepository;
 import org.example.repository.UserRepository;
+import org.example.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,14 +25,14 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    private User getCurrentUser() {
-        String tel = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByTel(tel)
-                .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
-    }
+    @Autowired
+    private TokenRepository tokenRepository;
+
+    @Autowired
+    private AuthService authService;
 
     public UserResponseDTO getUserDetails(){
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         return UserResponseDTO.fromEntity(user);
     }
 
@@ -44,6 +40,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId).orElseThrow(() -> new DataNotFoundException("User not found"));
         if (user.getStatus() == 1) user.setStatus((byte) 0);
         userRepository.save(user);
+        tokenRepository.revokeAllByUser(user);
         return UserResponseDTO.fromEntity(user);
     }
 
@@ -55,7 +52,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public UserResponseDTO changeUserName(String name){
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (userRepository.existsByName(name)) {
             throw new ResourceAlreadyExistsException("Name already registered");
         }
@@ -64,39 +61,10 @@ public class UserServiceImpl implements UserService {
         return getUserDetails();
     }
 
-    public CustomerLiteDTO getCustomerDetails(Long id){
-        Customer customer = customerRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Customer not found"));
-
-        if(!customer.getUser().equals(getCurrentUser())){
-            throw new UnauthorizedAccessException("Unauthorize");
-        }
-
-        return CustomerLiteDTO.builder().tel(customer.getTel()).name(customer.getName()).id(customer.getId()).build();
-    }
-
-    public CustomerResponseDTO getCustomerDetails(String tel){
-        User user = getCurrentUser();
-        List<Customer> customers = customerRepository.findByTel(tel);
-        int totalPackages = 0;
-        for (Customer customer : customers){
-            totalPackages += customer.getPackages().size();
-        }
-        Customer customer = customers.get(0);
-
-        List<ReportResponseDTO> reportResponseDTOS = customer.getReports().stream().map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).customerId(report.getCustomer().getId()).build()).toList();
-
-        CustomerType type ;
-        if (reportResponseDTOS.isEmpty()) {
-            type = CustomerType.UY_TIN;
-        } else if (reportResponseDTOS.size() < 3) {
-            type = CustomerType.IT_BOM_HANG;
-        } else if (reportResponseDTOS.size() <= 5){
-            type = CustomerType.THUONG_XUYEN_BOM_HANG;
-        } else {
-            type = CustomerType.RAT_HAY_BOM_HANG;
-        }
-
-        return CustomerResponseDTO.builder().tel(customer.getTel()).type(type.getDescription()).totalPackages(totalPackages).reports(reportResponseDTOS).build();
+    @Override
+    public UserResponseDTO getUserDetailsById(Long id) {
+        return UserResponseDTO.fromEntity(userRepository.findById(id)
+                .orElseThrow(() -> new DataNotFoundException("User not found.")));
     }
 
     @Override

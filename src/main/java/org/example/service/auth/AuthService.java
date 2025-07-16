@@ -17,4 +17,6 @@ public interface AuthService {
     User register(RegisterRequest req);
 
     Map<String, String> changePassword(PasswordChangeRequest req);
+
+    User getCurrentUser();
 }

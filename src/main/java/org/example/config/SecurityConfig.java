@@ -57,27 +57,19 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh-token").permitAll()
-
                         .requestMatchers("/api/package/get-by-id/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/package/get-all-packages").hasRole("ADMIN")
+                        .requestMatchers("/api/user/get-user-details-by-id/**").hasRole("ADMIN")
                         .requestMatchers("/api/package/**").hasRole("USER")
-
-
                         .requestMatchers("/api/dashboard/**").hasRole("USER")
-
                         .requestMatchers("/api/product/**").hasRole("USER")
-
-
                         .requestMatchers("/api/report/**").hasRole("USER")
-
+                        .requestMatchers("api/customer/**").hasRole("USER")
                         .requestMatchers("/api/user/active-user/**", "/api/user/deactive-user/**", "/api/user/get-all-users").hasRole("ADMIN")
                         .requestMatchers("/api/user/**").hasRole("USER")
                         .anyRequest().authenticated()
                 )
-
-
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler)

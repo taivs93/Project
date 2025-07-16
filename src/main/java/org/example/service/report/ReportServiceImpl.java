@@ -10,6 +10,7 @@ import org.example.exception.UnauthorizedAccessException;
 import org.example.repository.CustomerRepository;
 import org.example.repository.ReportRepository;
 import org.example.repository.UserRepository;
+import org.example.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,11 +30,8 @@ public class ReportServiceImpl implements ReportService {
     @Autowired
     private CustomerRepository customerRepository;
 
-    private User getCurrentUser() {
-        String tel = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByTel(tel)
-                .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
-    }
+    @Autowired
+    private AuthService authService;
 
     private ReportResponseDTO toDTO(Report report){
 
@@ -42,7 +40,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     public ReportResponseDTO insertReport(ReportDTO reportDTO){
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         Customer customer = customerRepository.findById(reportDTO.getCustomerId()).orElseThrow(() -> new DataNotFoundException("Customer not found"));
         if (!customer.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedAccessException("Not authorized to add this report");
@@ -62,7 +60,7 @@ public class ReportServiceImpl implements ReportService {
     public void deleteReport(Long id){
         Report report = reportRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Report not found"));
-        User user = getCurrentUser();
+        User user = authService.getCurrentUser();
         if (!report.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedAccessException("Not authorized to delete this report");
         }
