@@ -1,5 +1,7 @@
 package taivs.project.service.user;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import taivs.project.dto.response.UserResponseDTO;
 
 import java.util.List;
@@ -16,5 +18,5 @@ public interface UserService {
 
     UserResponseDTO getUserDetailsById(Long id);
 
-    List<UserResponseDTO> findAllUsers();
+    Page<UserResponseDTO> findAllUsers(Pageable pageable);
 }

@@ -1,5 +1,7 @@
 package taivs.project.service.user;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import taivs.project.dto.response.UserResponseDTO;
 import taivs.project.entity.User;
 import taivs.project.exception.DataNotFoundException;
@@ -66,7 +68,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserResponseDTO> findAllUsers() {
-        return userRepository.findAllUsers().stream().map(UserResponseDTO::fromEntity).toList();
+    public Page<UserResponseDTO> findAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(UserResponseDTO::fromEntity);
     }
+
 }

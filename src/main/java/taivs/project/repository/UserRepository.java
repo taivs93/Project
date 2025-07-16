@@ -1,5 +1,7 @@
 package taivs.project.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import taivs.project.entity.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,6 +31,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
             SELECT u FROM User u 
             """)
-    List<User> findAllUsers();
+    Page<User> findAllUsers(Pageable pageable);
 }
 

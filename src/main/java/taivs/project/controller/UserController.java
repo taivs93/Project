@@ -1,8 +1,14 @@
 package taivs.project.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import taivs.project.dto.request.NameChangeRequest;
+import taivs.project.dto.response.PagedResponse;
 import taivs.project.dto.response.ResponseDTO;
+import taivs.project.dto.response.UserResponseDTO;
 import taivs.project.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -50,10 +56,32 @@ public class UserController {
     }
 
     @GetMapping("/get-all-users")
-    @PreAuthorize("hasRole('ADMIN)")
-    public ResponseEntity<ResponseDTO> getAllUsers(){
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get all users successfully")
-                .data(userService.findAllUsers()).build());
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ResponseDTO> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortField,
+            @RequestParam(defaultValue = "DESC") String sortDirection) {
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        Page<UserResponseDTO> users = userService.findAllUsers(pageable);
+
+        PagedResponse<UserResponseDTO> pagedResponse = new PagedResponse<>(
+                users.getContent(),
+                users.getNumber(),
+                users.getSize(),
+                users.getTotalElements(),
+                users.getTotalPages(),
+                users.isLast()
+        );
+
+        return ResponseEntity.ok(ResponseDTO.builder()
+                .status(200)
+                .message("Get all users successfully")
+                .data(pagedResponse)
+                .build());
     }
 }
 
