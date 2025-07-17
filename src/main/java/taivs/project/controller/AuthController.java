@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,8 +26,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@Valid @RequestBody LoginRequest req) {
-        Map<String,String> tokenAndSessionId = authService.login(req.getTel(), req.getPassword());
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Login successfully").data(tokenAndSessionId).build());
+        List<?> loginResults = authService.login(req.getTel(), req.getPassword());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Login successfully").data(loginResults).build());
     }
 
     @PostMapping("/refresh-token")

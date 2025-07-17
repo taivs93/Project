@@ -32,6 +32,7 @@ public class CustomerController {
     @GetMapping("/get-list-customers")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ResponseDTO> getListCustomers(){
+
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get list customers successfully")
                 .data(customerService.getListCustomers()).build());
     }

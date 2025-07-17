@@ -62,6 +62,15 @@ public class ReportServiceImpl implements ReportService {
         if (!report.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedAccessException("Not authorized to delete this report");
         }
+        List<Report> reports = user.getReports();
+        reports.remove(report);
+        List<Customer> customers = customerRepository.findByTel(user.getTel());
+        for (Customer c : customers) {
+            List<Report> reportList = c.getReports();
+            reportList.remove(report);
+            c.setReports(reportList);
+        }
+        user.setReports(reports);
         reportRepository.delete(report);
     }
 }

@@ -4,11 +4,12 @@ import taivs.project.dto.request.PasswordChangeRequest;
 import taivs.project.dto.request.RegisterRequest;
 import taivs.project.entity.User;
 
+import java.util.List;
 import java.util.Map;
 
 public interface AuthService {
 
-    Map<String, String> login(String tel, String password);
+    List<?> login(String tel, String password);
 
     Map<String, String> refresh(String refreshToken, String sessionId);
 
@@ -16,7 +17,7 @@ public interface AuthService {
 
     User register(RegisterRequest req);
 
-    Map<String, String> changePassword(PasswordChangeRequest req);
+    List<?> changePassword(PasswordChangeRequest req);
 
     User getCurrentUser();
 }

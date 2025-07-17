@@ -2,15 +2,8 @@ server:
   port: 8181
 
 spring:
-  redis:
-    host: ${SPRING_REDIS_HOST:redis}
-    port: ${SPRING_REDIS_PORT:6379}
   application:
     name: project
-  datasource:
-    url: jdbc:mariadb://localhost:3306/project_db
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
   jpa:
     show-sql: true
     hibernate:

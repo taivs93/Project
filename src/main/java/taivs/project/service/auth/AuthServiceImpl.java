@@ -2,6 +2,7 @@ package taivs.project.service.auth;
 
 import taivs.project.dto.request.PasswordChangeRequest;
 import taivs.project.dto.request.RegisterRequest;
+import taivs.project.dto.response.UserResponseDTO;
 import taivs.project.entity.*;
 import taivs.project.exception.*;
 import taivs.project.repository.RoleRepository;
@@ -68,11 +69,11 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    public Map<String, String> login(String tel, String password) {
+    public List<?> login(String tel, String password) {
         authManager.authenticate(new UsernamePasswordAuthenticationToken(tel, password));
         User user = userRepository.findByTel(tel)
                 .orElseThrow(() -> new UsernameNotFoundException("Tel not found:" + tel));
-        return revokeAndGenerateNewToken(user);
+        return List.of(revokeAndGenerateNewToken(user), UserResponseDTO.fromEntity(user));
     }
 
 
@@ -119,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
 
         return user;
     }
-    public Map<String,String> changePassword(PasswordChangeRequest req) {
+    public List<?> changePassword(PasswordChangeRequest req) {
         User user = getCurrentUser();
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             throw new InvalidCredentialException("Wrong old password");
