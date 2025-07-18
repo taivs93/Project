@@ -6,7 +6,7 @@ services:
     container_name: mariadb
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: project_db
     ports:
       - "3306:3306"
@@ -34,8 +34,8 @@ services:
       - "8181:8181"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/project_db
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
 
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
@@ -48,6 +48,7 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
 
+      SPRING_PROFILES_ACTIVE: docker
     restart: always
 
 volumes:
