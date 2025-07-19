@@ -155,6 +155,7 @@ public class PackageServiceImpl implements PackageService {
         if (pack.getIsDraft() == 1) {
             throw new InvalidDraftPackageException("Cannot update draft package");
         }
+        packageRedisService.bumpUserCacheVersion(authService.getCurrentUser().getId());
         pack.setStatus(newStatus);
         packageRepository.save(pack);
 
@@ -169,11 +170,13 @@ public class PackageServiceImpl implements PackageService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
         User user = authService.getCurrentUser();
 
-        String cacheKey = String.format("search::%d::%s::%d::%d::%d::%s::%s",
+        String version = packageRedisService.getUserCacheVersion(user.getId());
+        String cacheKey = String.format("search::%d::%s::%d::%d::%d::%s::%s::v%s",
                 user.getId(),
                 customerTel != null ? customerTel : "null",
                 id != null ? id : 0,
-                page, size, sortField, sortDirection
+                page, size, sortField, sortDirection,
+                version
         );
 
         Page<PackageResponseDTO> cached = packageRedisService.getCachedPackages(cacheKey, pageable);

@@ -13,5 +13,8 @@ public interface PackageRedisService {
 
     void cachePackages(String cacheKey, List<PackageResponseDTO> dtoList, Duration ttl);
 
+    String getUserCacheVersion(Long userId);
+
+    void bumpUserCacheVersion(Long userId);
 }
 

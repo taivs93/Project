@@ -10,12 +10,15 @@ import com.taivs.project.service.redis.RedisService;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PackageRedisServiceImpl implements PackageRedisService {
 
     @Autowired
     private RedisService redisService;
+
+    private static final String VERSION_KEY_PATTERN = "search::version::user::%d";
 
     @Override
     public Page<PackageResponseDTO> getCachedPackages(String cacheKey, Pageable pageable) {
@@ -27,6 +30,25 @@ public class PackageRedisServiceImpl implements PackageRedisService {
     @Override
     public void cachePackages(String cacheKey, List<PackageResponseDTO> dtoList, Duration ttl) {
         redisService.set(cacheKey, dtoList, ttl);
+    }
+
+    @Override
+    public String getUserCacheVersion(Long userId) {
+        String key = String.format(VERSION_KEY_PATTERN,userId);
+        String version = redisService.get(key,String.class);
+        if(version == null){
+            version = UUID.randomUUID().toString();
+            redisService.set(key,version,Duration.ofDays(1));
+        }
+
+        return version;
+    }
+
+    @Override
+    public void bumpUserCacheVersion(Long userId) {
+        String key = String.format(VERSION_KEY_PATTERN,userId);
+        String newVersion = UUID.randomUUID().toString();
+        redisService.set(key, newVersion, Duration.ofDays(1));
     }
 }
 
