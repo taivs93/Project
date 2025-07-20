@@ -64,4 +64,10 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
             """)
     Page<Package> findAllPackage(Pageable pageable);
 
+    @Query("""
+            SELECT p FROM Package p
+            WHERE p.user.id = :userId
+            AND p.isDraft = 0
+            """)
+    Page<Package> getPackagesOfUser(Pageable pageable, @Param("userId") Long userId);
 }

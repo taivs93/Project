@@ -40,7 +40,6 @@ public class UserController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get user details successfully").data(userService.getUserDetailsById(id)).build());
     }
 
-
     @PatchMapping("/active-user/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO> activeUser(@PathVariable Long id){

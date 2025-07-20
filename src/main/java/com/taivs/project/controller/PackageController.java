@@ -60,7 +60,7 @@ public class PackageController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO> updateStatus(
             @PathVariable Long id,
             @RequestBody StatusUpdateRequest request
@@ -94,7 +94,6 @@ public class PackageController {
                 .data(pagedResponse)
                 .build());
     }
-
 
     @GetMapping("search-draft-packages")
     @PreAuthorize("hasRole('USER')")
@@ -157,5 +156,40 @@ public class PackageController {
                 .message("Get all packages successfully")
                 .data(pagedResponse)
                 .build());
+    }
+
+    @GetMapping("/get-packages-of-user/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ResponseDTO> getPackagesOfUser(@RequestParam(defaultValue = "0") int page,
+                                                         @RequestParam(defaultValue = "10") int size,
+                                                         @RequestParam(defaultValue = "id") String sortField,
+                                                         @RequestParam(defaultValue = "DESC") String sortDirection
+                                                        ,@PathVariable Long id){
+        Page<PackageResponseDTO> packageResponseDTOPage = packageService.getPackagesOfUser(page,size,sortField,sortDirection,id);
+        PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
+                packageResponseDTOPage.getContent(),
+                packageResponseDTOPage.getNumber(),
+                packageResponseDTOPage.getSize(),
+                packageResponseDTOPage.getTotalElements(),
+                packageResponseDTOPage.getTotalPages(),
+                packageResponseDTOPage.isLast()
+        );
+        return ResponseEntity.ok(ResponseDTO.builder()
+                .status(200)
+                .message("Get all packages of user successfully")
+                .data(pagedResponse)
+                .build());
+    }
+
+    @DeleteMapping("/delete-draft/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ResponseDTO> deleteDraftPackageById(@PathVariable Long id){
+        packageService.deleteDraftPackage(id);
+        return ResponseEntity.ok(
+                ResponseDTO.builder()
+                        .status(204)
+                        .message("Delete draft successfully")
+                        .build()
+        );
     }
 }

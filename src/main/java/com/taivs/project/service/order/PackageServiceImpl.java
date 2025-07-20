@@ -60,7 +60,6 @@ public class PackageServiceImpl implements PackageService {
         }
         return weight <= 2 ? 0.0 : Math.round((weight - 2) * 10000 * 100.0) / 100.0;
     }
-
     public Double getValue(List<PackageProductDTO> items) {
         double value = 0;
         for (PackageProductDTO item : items) {
@@ -77,12 +76,10 @@ public class PackageServiceImpl implements PackageService {
         }
         return Math.round(value * 100.0) / 100.0;
     }
-
     public Double getTotalFee(PackageDTO dto) {
         double base = dto.getPickMoney() + getExtraFee(dto.getPackageItems());
         return Math.round((dto.getShipPayer() == ShipPayer.USER ? base : base + 30000) * 100.0) / 100.0;
     }
-
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
@@ -90,10 +87,8 @@ public class PackageServiceImpl implements PackageService {
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
                 .orElse(Customer.builder().tel(dto.getCustomerTel()).user(user).build());
-
         customer.setName(dto.getCustomerName());
         customerRepository.save(customer);
-
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
@@ -106,14 +101,11 @@ public class PackageServiceImpl implements PackageService {
                 .user(user)
                 .isDraft((byte) 1)
                 .build();
-
         Map<Long, Integer> groupedItems = new HashMap<>();
         for (PackageProductDTO item : dto.getPackageItems()) {
             groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
         }
-
         List<PackageProduct> items = new ArrayList<>();
-
         for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
             Long productId = entry.getKey();
             int quantity = entry.getValue();
@@ -130,15 +122,12 @@ public class PackageServiceImpl implements PackageService {
                     .build());
         }
 
-
         packageProductRepository.saveAll(items);
         newPackage.setPackageItems(items);
         packageRepository.save(newPackage);
 
         return toResponse(newPackage);
     }
-
-
 
     public PackageResponseDTO updatePackageStatus(Long id, int newStatus) {
         Package pack = packageRepository.findById(id)
@@ -148,13 +137,10 @@ public class PackageServiceImpl implements PackageService {
             throw new InvalidStatusTransitionException("Invalid status transition: " + pack.getStatus() + " -> " + newStatus);
         }
 
-        if (!Objects.equals(pack.getUser().getId(), authService.getCurrentUser().getId())) {
-            throw new UnauthorizedAccessException("Not authorized to update this package");
-        }
-
         if (pack.getIsDraft() == 1) {
             throw new InvalidDraftPackageException("Cannot update draft package");
         }
+
         packageRedisService.bumpUserCacheVersion(authService.getCurrentUser().getId());
         pack.setStatus(newStatus);
         packageRepository.save(pack);
@@ -367,4 +353,18 @@ public class PackageServiceImpl implements PackageService {
         return packageRepository.findAllPackage(pageable)
                 .map(this::toResponse);
     }
+
+    @Override
+    public Page<PackageResponseDTO> getPackagesOfUser(int page, int size, String sortField, String sortDirection, Long userId) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
+        return packageRepository.getPackagesOfUser(pageable,userId).map(this::toResponse);
+    }
+
+    @Override
+    public void deleteDraftPackage(Long id) {
+        Package pack = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
+        if(pack.getIsDraft() == 0) throw new InvalidDraftPackageException("Only draft package can be deleted!");
+        packageRepository.deleteById(id);
+    }
+
 }

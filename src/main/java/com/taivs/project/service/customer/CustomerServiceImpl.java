@@ -1,5 +1,6 @@
 package com.taivs.project.service.customer;
 
+import com.taivs.project.dto.request.CustomerDTO;
 import com.taivs.project.dto.response.CustomerLiteDTO;
 import com.taivs.project.dto.response.CustomerResponseDTO;
 import com.taivs.project.dto.response.ReportResponseDTO;
@@ -14,6 +15,7 @@ import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class CustomerServiceImpl implements CustomerService{
@@ -26,7 +28,6 @@ public class CustomerServiceImpl implements CustomerService{
 
     @Autowired
     private AuthService authService;
-
 
     @Override
     public CustomerLiteDTO getCustomerDetails(Long id){
@@ -71,5 +72,25 @@ public class CustomerServiceImpl implements CustomerService{
         return customers.stream().map(customer ->
                 CustomerLiteDTO.builder().id(customer.getId()).name(customer.getName()).tel(customer.getTel()).build())
                 .toList();
+    }
+
+    @Override
+    public CustomerLiteDTO updateCustomerInfo(Long id,CustomerDTO customerDTO) {
+        Customer customer = customerRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Customer not found"));
+        User user = authService.getCurrentUser();
+
+        if (!Objects.equals(customer.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Access denied to this data");
+
+        customer.setName(customerDTO.getName());
+        customer.setTel(customerDTO.getTel());
+
+        return CustomerLiteDTO.builder().id(customer.getId()).tel(customerDTO.getTel()).name(customer.getName()).build();
+    }
+    @Override
+    public void deleteCustomerById(Long id) {
+        Customer customer = customerRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Customer not found"));
+        User user = authService.getCurrentUser();
+        if (!Objects.equals(customer.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Access denied to this data");
+        customerRepository.deleteById(id);
     }
 }
