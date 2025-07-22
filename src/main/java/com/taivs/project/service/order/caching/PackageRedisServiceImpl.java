@@ -20,6 +20,8 @@ public class PackageRedisServiceImpl implements PackageRedisService {
 
     private static final String VERSION_KEY_PATTERN = "search::version::user::%d";
 
+    private static final String ADMIN_VERSION_KEY = "search::version::admin";
+
     @Override
     public Page<PackageResponseDTO> getCachedPackages(String cacheKey, Pageable pageable) {
         List<PackageResponseDTO> cachedList = redisService.get(cacheKey, List.class);
@@ -49,6 +51,22 @@ public class PackageRedisServiceImpl implements PackageRedisService {
         String key = String.format(VERSION_KEY_PATTERN,userId);
         String newVersion = UUID.randomUUID().toString();
         redisService.set(key, newVersion, Duration.ofDays(1));
+    }
+
+    @Override
+    public String getAdminCacheVersion() {
+        String version = redisService.get(ADMIN_VERSION_KEY, String.class);
+        if (version == null) {
+            version = UUID.randomUUID().toString();
+            redisService.set(ADMIN_VERSION_KEY, version, Duration.ofDays(1));
+        }
+        return version;
+    }
+
+    @Override
+    public void bumpAdminCacheVersion() {
+        String version = UUID.randomUUID().toString();
+        redisService.set(ADMIN_VERSION_KEY, version, Duration.ofDays(1));
     }
 }
 

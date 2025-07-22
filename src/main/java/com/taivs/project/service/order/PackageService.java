@@ -32,9 +32,7 @@ public interface PackageService {
 
     PackageResponseDTO findPackageById(Long id);
 
-    Page<PackageResponseDTO> getAllPackages(int page, int size, String sortField, String sortDirection);
-
-    Page<PackageResponseDTO> getPackagesOfUser(int page, int size, String sortField, String sortDirection, Long userId);
+    Page<PackageResponseDTO> getPackages(Long userId, String customerTel, Long id, int page, int size, String sortField, String sortDirection);
 
     void deleteDraftPackage(Long id);
 }

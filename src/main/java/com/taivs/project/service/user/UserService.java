@@ -6,8 +6,6 @@ import com.taivs.project.dto.response.UserResponseDTO;
 
 public interface UserService {
 
-    UserResponseDTO getUserDetails();
-
     UserResponseDTO deActiveUser(Long userId);
 
     UserResponseDTO activeUser(Long userId);
@@ -16,5 +14,5 @@ public interface UserService {
 
     UserResponseDTO getUserDetailsById(Long id);
 
-    Page<UserResponseDTO> findAllUsers(Pageable pageable);
+    Page<UserResponseDTO> getUsers(String userTel, Pageable pageable);
 }

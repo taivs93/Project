@@ -31,4 +31,10 @@ public class ReportController {
         reportService.deleteReport(id);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Report deleted successfully").build());
     }
+
+    @GetMapping("/get/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ResponseDTO> getReportById(@PathVariable Long id){
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get report by ID successfully").data(reportService.getReportId(id)).build());
+    }
 }

@@ -1,12 +1,12 @@
 package com.taivs.project.service.user;
 
+import com.taivs.project.exception.UnauthorizedAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.User;
 import com.taivs.project.exception.DataNotFoundException;
 import com.taivs.project.exception.ResourceAlreadyExistsException;
-
 import com.taivs.project.repository.CustomerRepository;
 import com.taivs.project.repository.TokenRepository;
 import com.taivs.project.repository.UserRepository;
@@ -28,11 +28,6 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private AuthService authService;
-
-    public UserResponseDTO getUserDetails(){
-        User user = authService.getCurrentUser();
-        return UserResponseDTO.fromEntity(user);
-    }
 
     public UserResponseDTO deActiveUser(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new DataNotFoundException("User not found"));
@@ -56,18 +51,23 @@ public class UserServiceImpl implements UserService {
         }
         user.setName(name);
         userRepository.save(user);
-        return getUserDetails();
+        return getUserDetailsById(user.getId());
     }
 
     @Override
     public UserResponseDTO getUserDetailsById(Long id) {
+        User user = authService.getCurrentUser();
+        boolean isAdmin = user.getUserRoles().stream().anyMatch(userRole -> userRole.getRole().getName().equals("ADMIN"));
+
+        if (!user.getId().equals(id) && !isAdmin) throw new UnauthorizedAccessException("Unauthorize to access this resource");
+
         return UserResponseDTO.fromEntity(userRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("User not found.")));
     }
 
     @Override
-    public Page<UserResponseDTO> findAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
+    public Page<UserResponseDTO> getUsers(String tel, Pageable pageable) {
+        return userRepository.getUsers(tel, pageable)
                 .map(UserResponseDTO::fromEntity);
     }
 

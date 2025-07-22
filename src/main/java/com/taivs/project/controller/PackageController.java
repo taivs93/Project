@@ -135,13 +135,16 @@ public class PackageController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get package successfully!").data(packageService.findPackageById(id)).build());
     }
 
-    @GetMapping("/get-all-packages")
+    @GetMapping("/get-packages")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ResponseDTO> getAllUsers(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<ResponseDTO> getPackages(@RequestParam(required = false) Long userId,
+                                                   @RequestParam(required = false) String customerTel,
+                                                   @RequestParam(required = false) Long id,
+                                                   @RequestParam(defaultValue = "0") int page,
                                                    @RequestParam(defaultValue = "10") int size,
                                                    @RequestParam(defaultValue = "id") String sortField,
                                                    @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packageResponseDTOPage = packageService.getAllPackages(page,size,sortField,sortDirection);
+        Page<PackageResponseDTO> packageResponseDTOPage = packageService.getPackages(userId,customerTel,id,page,size,sortField,sortDirection);
         PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
                 packageResponseDTOPage.getContent(),
                 packageResponseDTOPage.getNumber(),
@@ -154,29 +157,6 @@ public class PackageController {
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)
                 .message("Get all packages successfully")
-                .data(pagedResponse)
-                .build());
-    }
-
-    @GetMapping("/get-packages-of-user/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ResponseDTO> getPackagesOfUser(@RequestParam(defaultValue = "0") int page,
-                                                         @RequestParam(defaultValue = "10") int size,
-                                                         @RequestParam(defaultValue = "id") String sortField,
-                                                         @RequestParam(defaultValue = "DESC") String sortDirection
-                                                        ,@PathVariable Long id){
-        Page<PackageResponseDTO> packageResponseDTOPage = packageService.getPackagesOfUser(page,size,sortField,sortDirection,id);
-        PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
-                packageResponseDTOPage.getContent(),
-                packageResponseDTOPage.getNumber(),
-                packageResponseDTOPage.getSize(),
-                packageResponseDTOPage.getTotalElements(),
-                packageResponseDTOPage.getTotalPages(),
-                packageResponseDTOPage.isLast()
-        );
-        return ResponseEntity.ok(ResponseDTO.builder()
-                .status(200)
-                .message("Get all packages of user successfully")
                 .data(pagedResponse)
                 .build());
     }

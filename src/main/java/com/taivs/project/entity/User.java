@@ -36,7 +36,7 @@ public class User extends BaseEntity {
     @Column(name = "address",nullable = false,length = 400)
     private String address;
 
-    @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'status'")
+    @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1 COMMENT 'status'")
     private byte status;
 
     @OneToMany(mappedBy = "user",orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})

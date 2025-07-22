@@ -168,14 +168,13 @@ public class PackageServiceImpl implements PackageService {
         Page<PackageResponseDTO> cached = packageRedisService.getCachedPackages(cacheKey, pageable);
         if (cached != null) return cached;
 
-        Page<Package> pageResult = packageRepository.findByCustomerTelOrId(user.getId(), customerTel, id, pageable);
+        Page<Package> pageResult = packageRepository.getPackages(user.getId(), customerTel, id, pageable);
         List<PackageResponseDTO> dtoList = pageResult.map(this::toResponse).getContent();
 
         packageRedisService.cachePackages(cacheKey, dtoList, Duration.ofMinutes(10));
 
         return new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());
     }
-
 
     public Page<PackageResponseDTO> searchDraftPackages(String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         if (size > 20) size = 20;
@@ -258,7 +257,6 @@ public class PackageServiceImpl implements PackageService {
             productRepository.save(product);
         }
 
-
         draft.setIsDraft((byte) 0);
 
         return toResponse(packageRepository.save(draft));
@@ -338,6 +336,7 @@ public class PackageServiceImpl implements PackageService {
         throw new IllegalArgumentException("Time is invalid");
 
     }
+
     @Override
     public PackageResponseDTO findPackageById(Long id) {
         User user = authService.getCurrentUser();
@@ -348,22 +347,18 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
-    public Page<PackageResponseDTO> getAllPackages(int page, int size, String sortField, String sortDirection) {
+    public Page<PackageResponseDTO> getPackages(Long userId,String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        return packageRepository.findAllPackage(pageable)
+        return packageRepository.getPackages(userId,customerTel,id,pageable)
                 .map(this::toResponse);
-    }
-
-    @Override
-    public Page<PackageResponseDTO> getPackagesOfUser(int page, int size, String sortField, String sortDirection, Long userId) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        return packageRepository.getPackagesOfUser(pageable,userId).map(this::toResponse);
     }
 
     @Override
     public void deleteDraftPackage(Long id) {
         Package pack = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
         if(pack.getIsDraft() == 0) throw new InvalidDraftPackageException("Only draft package can be deleted!");
+        User user = authService.getCurrentUser();
+        if (pack.getUser().getId() != user.getId()) throw new UnauthorizedAccessException("Unauthorize to access this package.");
         packageRepository.deleteById(id);
     }
 

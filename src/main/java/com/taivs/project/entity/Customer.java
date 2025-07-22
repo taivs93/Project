@@ -32,7 +32,7 @@ public class Customer extends BaseEntity {
     private String tel;
 
     @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
-    private Integer status;
+    private Integer deleteStatus;
 
     @Column(name = "type",nullable = false)
     @Enumerated(EnumType.STRING)

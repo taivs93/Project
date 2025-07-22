@@ -8,4 +8,6 @@ public interface ReportService {
     ReportResponseDTO insertReport(ReportDTO reportDTO);
 
     void deleteReport(Long id);
+
+    ReportResponseDTO getReportId(Long id);
 }

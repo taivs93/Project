@@ -15,16 +15,9 @@ public interface PackageRepository extends JpaRepository<Package, Long>{
     @Query("SELECT p FROM Package p " +
             "WHERE (:customer_tel IS NULL OR p.customer.tel = :customer_tel) " +
             "AND (:id IS NULL OR p.id = :id)" +
-            "AND p.isDraft = 0" +
-            "AND p.user.id = :userId")
-    Page<Package> findByCustomerTelOrId(@Param("userId") Long userId,@Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
-
-    @Query("SELECT p FROM Package p " +
-            "WHERE (:customer_tel IS NULL OR p.customer.tel = :customer_tel) " +
-            "AND (:id IS NULL OR p.id = :id)" +
             "AND p.isDraft = 1" +
-            "AND p.user.id = :userId")
-    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("userId") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
+            "AND p.user.id = :user_id")
+    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("user_id") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
 
     @Query(value = """
      SELECT COALESCE(SUM(total_fee), 0)
@@ -60,14 +53,9 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
 
     @Query("""
             SELECT p FROM Package p
-            WHERE p.isDraft = 0
+            WHERE (:user_id IS NULL OR p.user.id = :user_id)
+            AND (:customer_tel IS NULL OR p.customer.tel = :customer_tel)
+            AND (:id IS NULL OR p.id = :id)
             """)
-    Page<Package> findAllPackage(Pageable pageable);
-
-    @Query("""
-            SELECT p FROM Package p
-            WHERE p.user.id = :userId
-            AND p.isDraft = 0
-            """)
-    Page<Package> getPackagesOfUser(Pageable pageable, @Param("userId") Long userId);
+    Page<Package> getPackages(@Param("user_id") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
 }

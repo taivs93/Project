@@ -6,6 +6,7 @@ import com.taivs.project.entity.Customer;
 import com.taivs.project.entity.Report;
 import com.taivs.project.entity.User;
 import com.taivs.project.exception.DataNotFoundException;
+import com.taivs.project.exception.ResourceAlreadyExistsException;
 import com.taivs.project.exception.UnauthorizedAccessException;
 import com.taivs.project.repository.CustomerRepository;
 import com.taivs.project.repository.ReportRepository;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class ReportServiceImpl implements ReportService {
@@ -72,5 +75,18 @@ public class ReportServiceImpl implements ReportService {
         }
         user.setReports(reports);
         reportRepository.delete(report);
+    }
+
+    @Override
+    public ReportResponseDTO getReportId(Long id){
+        Report report = reportRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Report not found"));
+        User user = authService.getCurrentUser();
+
+        if(!Objects.equals(report.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Unauthorize to access this data!");
+
+        return ReportResponseDTO.builder().id(report.getId())
+                .description(report.getDescription())
+                .customerId(report.getCustomer().getId())
+                .build();
     }
 }
