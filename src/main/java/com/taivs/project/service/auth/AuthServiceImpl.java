@@ -108,6 +108,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(req.getName())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .status((byte) 1)
+                .address(req.getAddress())
                 .build();
         userRepository.save(user);
 
@@ -115,9 +116,7 @@ public class AuthServiceImpl implements AuthService {
         userRole.setUser(user);
         userRole.setRole(role);
         userRole.setId(new UserRoleId(user.getId(), role.getId()));
-
         user.setUserRoles(List.of(userRole));
-
         return user;
     }
     public List<?> changePassword(PasswordChangeRequest req) {

@@ -1,5 +1,6 @@
 package com.taivs.project.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -30,5 +31,6 @@ public class RegisterRequest {
     @ValidPassword
     @NotEmpty(message = "Retype password is required")
     @Size(max = 250, message = "Retype password must be at most 250 characters")
+    @JsonProperty("retype_password")
     private String retypePassword;
 }

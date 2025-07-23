@@ -26,7 +26,7 @@ public class PackageDTO {
     private ShipPayer shipPayer;
 
     @NotNull(message = "Pick money is required")
-    @DecimalMin(value = "0.0", inclusive = true, message = "Pick money must be at least 0")
+    @DecimalMin(value = "0.0", message = "Pick money must be at least 0")
     @JsonProperty("pick_money")
     private Double pickMoney;
 

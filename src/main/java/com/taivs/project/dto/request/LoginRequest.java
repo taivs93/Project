@@ -8,10 +8,10 @@ import com.taivs.project.validation.phone.ValidPhone;
 public class LoginRequest {
 
     @ValidPhone
-    @NotEmpty
+    @NotEmpty(message = "Tel must not be empty")
     private String tel;
 
     @ValidPassword
-    @NotEmpty
+    @NotEmpty(message = "Password must not be empty")
     private String password;
 }

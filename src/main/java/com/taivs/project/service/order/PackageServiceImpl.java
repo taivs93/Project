@@ -322,7 +322,8 @@ public class PackageServiceImpl implements PackageService {
     public PackageResponseDTO getPackageById(Long id){
         Package aPackage = packageRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
         User user = authService.getCurrentUser();
-        if (!user.equals(aPackage.getUser())) throw new UnauthorizedAccessException("Unauthorized");
+        boolean isAdmin = user.getUserRoles().stream().anyMatch(userRole -> "ADMIN".equals(userRole.getRole().getName()));
+        if (!isAdmin && !user.equals(aPackage.getUser())) throw new UnauthorizedAccessException("Unauthorized to access");
         return toResponse(aPackage);
     }
 
