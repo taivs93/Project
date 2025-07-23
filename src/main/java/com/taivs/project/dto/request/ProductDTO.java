@@ -1,5 +1,4 @@
 package com.taivs.project.dto.request;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -17,21 +16,21 @@ public class ProductDTO {
     @Size(max = 50, message = "Barcode must be at most 50 characters")
     private String barcode;
 
-    @Positive(message = "Weight must be zero or positive")
-    private double weight;
+    @Positive(message = "Weight must be greater than 0")
+    private Double weight;
 
-    @Positive(message = "Height must be zero or positive")
-    private double height;
+    @Positive(message = "Height must be greater than 0")
+    private Double height;
 
-    @Positive(message = "Length must be zero or positive")
-    private double length;
+    @Positive(message = "Length must be greater than 0")
+    private Double length;
 
-    @Positive(message = "Width must be zero or positive")
-    private double width;
+    @Positive(message = "Width must be greater than 0")
+    private Double width;
 
     @PositiveOrZero(message = "Stock must be zero or positive")
-    private int stock;
+    private Integer stock;
 
     @PositiveOrZero(message = "Price must be zero or positive")
-    private double price;
+    private Double price;
 }

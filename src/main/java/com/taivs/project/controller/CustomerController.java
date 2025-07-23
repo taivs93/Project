@@ -5,6 +5,7 @@ import com.taivs.project.dto.response.CustomerLiteDTO;
 import com.taivs.project.dto.response.OwnCustomerResponse;
 import com.taivs.project.dto.response.ResponseDTO;
 import com.taivs.project.service.customer.CustomerService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,7 +58,7 @@ public class CustomerController {
 
     @PostMapping("/insert")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> insertCustomer(@RequestBody CustomerDTO customerDTO){
+    public ResponseEntity<ResponseDTO> insertCustomer(@Valid @RequestBody CustomerDTO customerDTO){
         return ResponseEntity.status(201).body(ResponseDTO.builder().status(201).message("Insert customer successfully!")
                 .data(customerService.insertCustomer(customerDTO)).build());
     }

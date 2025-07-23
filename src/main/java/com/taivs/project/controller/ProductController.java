@@ -26,7 +26,7 @@ public class ProductController {
 
     @PostMapping("/insert")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> insertProduct(@Valid @RequestBody ProductDTO productDTO, BindingResult bindingResult){
+    public ResponseEntity<ResponseDTO> insertProduct(@Valid @RequestBody ProductDTO productDTO){
         Product product = productService.createProduct(productDTO);
         ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
                 .id(product.getId())
@@ -83,7 +83,7 @@ public class ProductController {
 
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductDTO productDTO, BindingResult bindingResult){
+    public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductDTO productDTO){
         Product product = productService.updateProduct(productId,productDTO);
         ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
                 .id(product.getId())
