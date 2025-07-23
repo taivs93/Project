@@ -34,10 +34,11 @@ public class CustomerController {
     public ResponseEntity<ResponseDTO> getListCustomers(@RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "10") int size,
                                                         @RequestParam(defaultValue = "id") String sortField,
-                                                        @RequestParam(defaultValue = "ASC") String sortDirection){
+                                                        @RequestParam(defaultValue = "ASC") String sortDirection,
+                                                        @RequestParam(required = false) String customerTel){
 
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get list customers successfully")
-                .data(customerService.getListCustomers(page,size,sortField,sortDirection)).build());
+                .data(customerService.getListCustomers(page,size,sortField,sortDirection,customerTel)).build());
     }
 
     @PutMapping("/update-info/{id}")

@@ -15,7 +15,7 @@ public interface CustomerService {
 
     CustomerResponseDTO getCustomerDetailsByTel(String tel);
 
-    Page<CustomerLiteDTO> getListCustomers(int size, int page, String sortField, String sortDirection);
+    Page<CustomerLiteDTO> getListCustomers(int size, int page, String sortField, String sortDirection, String customerTel);
 
     CustomerLiteDTO updateCustomerInfo(Long id, CustomerDTO customerDTO);
 

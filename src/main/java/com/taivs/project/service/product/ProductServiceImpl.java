@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -94,15 +95,12 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
                 .map(this::toDTO);
     }
-    public Page<ProductResponseDTO> topRevenueProducts(int page,int size){
-        size = Math.min(size,5);
-        Pageable pageable = PageRequest.of(page,size);
-        return productRepository.findTopRevenueProducts(pageable).map(this::toDTO);
+    public List<ProductResponseDTO> top10RevenueProducts(){
+        return productRepository.findTop10RevenueProducts(authService.getCurrentUser().getId()).stream().map(this::toDTO).toList();
     }
-    public Page<ProductResponseDTO> topStockProducts(int page,int size){
-        size = Math.min(size,5);
-        Pageable pageable = PageRequest.of(page,size);
-        return productRepository.findTopStockProducts(pageable).map(this::toDTO);
+    public List<ProductResponseDTO> top10StockProducts(){
+
+        return productRepository.findTop10StockProducts(authService.getCurrentUser().getId()).stream().map(this::toDTO).toList();
     }
 
     private ProductResponseDTO toDTO(Product product) {
@@ -123,7 +121,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public Product updateProduct(Long id, ProductDTO dto) {
-        Product product = productRepository.findByIdAndIsDeleted(id, (byte) 0)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
         User user = authService.getCurrentUser();
@@ -148,7 +146,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public void deleteProduct(Long id) {
-        Product product = productRepository.findByIdAndIsDeleted(id, (byte) 0)
+        Product product = productRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
         User user = authService.getCurrentUser();
@@ -216,7 +214,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     public ProductResponseDTO getProductById(Long id){
-        Product product = productRepository.findByIdAndIsDeleted(id,(byte)0).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+        Product product = productRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Product not found"));
         User user = authService.getCurrentUser();
         if (!user.equals(product.getUser())) throw new UnauthorizedAccessException("You are unauthorized to get this Product");
         return toDTO(product);

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -33,25 +34,27 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p.weight FROM Product p WHERE p.id = :productId")
     Double getWeightById(@Param("productId") Long productId);
 
-    Optional<Product> findByIdAndIsDeleted(Long id,byte isDeleted);
-
     @Query("SELECT p FROM Product p WHERE p.id = :id AND p.isDeleted = 0")
     Optional<Product> findById(@Param("id") Long id);
 
-    @Query("""
-    SELECT pp.product 
-    FROM PackageProduct pp
-    WHERE pp.aPackage.status = 20
-    GROUP BY pp.product
+    @Query(value = """
+    SELECT p.*
+    FROM products p
+    JOIN package_products pp ON p.id = pp.product_id
+    JOIN packages pk ON pp.package_id = pk.id
+    WHERE pk.status = 20 AND pk.created_by = :userId
+    GROUP BY p.id
     ORDER BY SUM(pp.quantity) DESC
-    """)
-    Page<Product> findTopRevenueProducts(Pageable pageable);
+    LIMIT 10
+    """, nativeQuery = true)
+    List<Product> findTop10RevenueProducts(@Param("userId") Long userId);
 
-    @Query("""
-    SELECT p FROM Product p
-    WHERE p.isDeleted = 0
-    ORDER BY p.stock DESC
-    """)
-    Page<Product> findTopStockProducts(Pageable pageable);
-
+    @Query(value = """
+    SELECT *
+    FROM product
+    WHERE is_deleted = 0 AND user_id = :userId
+    ORDER BY stock DESC
+    LIMIT 10
+    """, nativeQuery = true)
+    List<Product> findTop10StockProducts(@Param("userId") Long userId);
 }

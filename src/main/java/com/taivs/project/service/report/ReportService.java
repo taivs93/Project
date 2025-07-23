@@ -10,4 +10,4 @@ public interface ReportService {
     void deleteReport(Long id);
 
     ReportResponseDTO getReportId(Long id);
-}
+} 

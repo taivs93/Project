@@ -36,7 +36,7 @@ public class ReportServiceImpl implements ReportService {
 
     private ReportResponseDTO toDTO(Report report){
 
-        return ReportResponseDTO.builder().id(report.getId()).customerId(report.getCustomer().getId())
+        return ReportResponseDTO.builder().id(report.getId())
                 .description(report.getDescription()).build();
     }
 
@@ -86,7 +86,6 @@ public class ReportServiceImpl implements ReportService {
 
         return ReportResponseDTO.builder().id(report.getId())
                 .description(report.getDescription())
-                .customerId(report.getCustomer().getId())
                 .build();
     }
 }

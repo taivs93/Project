@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/dashboard")
 public class DashboardController {
@@ -23,34 +25,16 @@ public class DashboardController {
 
     @GetMapping("/user/top-revenue-products")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> getTopRevenueProducts(@RequestParam(defaultValue = "0") int page
-            ,@RequestParam(defaultValue = "5") int size){
-        Page<ProductResponseDTO> productResponseDTOS = productService.topRevenueProducts(page,size);
-        PagedResponse<ProductResponseDTO> pagedResponse = new PagedResponse<>(
-                productResponseDTOS.getContent(),
-                productResponseDTOS.getNumber(),
-                productResponseDTOS.getSize(),
-                productResponseDTOS.getTotalElements(),
-                productResponseDTOS.getTotalPages(),
-                productResponseDTOS.isLast()
-        );
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top revenue products successfully").data(pagedResponse).build());
+    public ResponseEntity<ResponseDTO> getTopRevenueProducts(){
+        List<ProductResponseDTO> productResponseDTOS = productService.top10RevenueProducts();
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top revenue products successfully").data(productResponseDTOS).build());
     }
 
     @GetMapping("/user/top-stock-products")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> getTopStockProducts(@RequestParam(defaultValue = "0") int page
-            ,@RequestParam(defaultValue = "5") int size){
-        Page<ProductResponseDTO> productResponseDTOS = productService.topStockProducts(page,size);
-        PagedResponse<ProductResponseDTO> pagedResponse = new PagedResponse<>(
-                productResponseDTOS.getContent(),
-                productResponseDTOS.getNumber(),
-                productResponseDTOS.getSize(),
-                productResponseDTOS.getTotalElements(),
-                productResponseDTOS.getTotalPages(),
-                productResponseDTOS.isLast()
-        );
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(pagedResponse).build());
+    public ResponseEntity<ResponseDTO> getTopStockProducts(){
+        List<ProductResponseDTO> productResponseDTOS = productService.top10StockProducts();
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(productResponseDTOS).build());
     }
 
     @GetMapping("user/get-revenue-by-time")

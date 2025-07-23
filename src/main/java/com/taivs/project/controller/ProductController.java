@@ -45,8 +45,8 @@ public class ProductController {
         return ResponseEntity.ok(ResponseDTO.builder().status(201).message("Product created successfully").data(productResponseDTO).build());
     }
 
-    @GetMapping("/get-by-id/{id}")
     @PreAuthorize("hasRole('USER')")
+    @GetMapping("/get-by-id/{id}")
     public ResponseEntity<ResponseDTO> getProductById(@PathVariable("id") Long id){
         ProductResponseDTO productResponseDTO = productService.getProductById(id);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get product successfully!").data(productResponseDTO).build());

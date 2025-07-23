@@ -54,7 +54,7 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
     @Query("""
             SELECT p FROM Package p
             WHERE (:user_id IS NULL OR p.user.id = :user_id)
-            AND (:customer_tel IS NULL OR p.customer.tel = :customer_tel)
+            AND (:customer_tel IS NULL OR p.customer.tel LIKE %:customer_tel%)
             AND (:id IS NULL OR p.id = :id)
             """)
     Page<Package> getPackages(@Param("user_id") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);

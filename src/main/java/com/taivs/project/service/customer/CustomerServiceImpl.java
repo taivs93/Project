@@ -51,7 +51,7 @@ public class CustomerServiceImpl implements CustomerService{
         List<Report> reportsByUserIdAndCustomerId = reportRepository.getReportsByUserIdAndCustomerId(authService.getCurrentUser().getId(), customer.getId());
 
         List<ReportResponseDTO> reportResponseDTOS = reportsByUserIdAndCustomerId.stream()
-                .map(report -> ReportResponseDTO.builder().id(report.getId()).customerId(report.getCustomer().getId()).description(report.getDescription()).build())
+                .map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).build())
                 .toList();
 
         Long totalPackagesWithUser = customer.getPackages().stream().filter(aPackage -> aPackage.getUser().getId().equals(authService.getCurrentUser().getId())).count();
@@ -74,7 +74,7 @@ public class CustomerServiceImpl implements CustomerService{
         }
         Customer customer = customers.get(0);
 
-        List<ReportResponseDTO> reportResponseDTOS = customer.getReports().stream().map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).customerId(report.getCustomer().getId()).build()).toList();
+        List<ReportResponseDTO> reportResponseDTOS = customer.getReports().stream().map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).build()).toList();
 
         CustomerType type ;
         if (reportResponseDTOS.isEmpty()) {
@@ -90,10 +90,10 @@ public class CustomerServiceImpl implements CustomerService{
     }
 
     @Override
-    public Page<CustomerLiteDTO> getListCustomers(int page, int size, String sortField, String sortDirection) {
+    public Page<CustomerLiteDTO> getListCustomers(int page, int size, String sortField, String sortDirection, String customerTel) {
         User user = authService.getCurrentUser();
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        Page<Customer> customers = customerRepository.getListCustomer(pageable, user.getId());
+        Page<Customer> customers = customerRepository.getListCustomer(pageable, user.getId(),customerTel);
         return customers.map(customer -> CustomerLiteDTO.builder().id(customer.getId())
                 .name(customer.getName())
                 .tel(customer.getTel())
