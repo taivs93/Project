@@ -13,6 +13,11 @@
         @Autowired
         private RedisTemplate<String, Object> redisTemplate;
 
+        @PostConstruct
+        public void testRedis() {
+            System.out.println("Redis host: " + redisTemplate.getConnectionFactory().getConnection().getClientName());
+        }
+
         @Override
         public <T> void set(String key, T value, Duration ttl) {
             redisTemplate.opsForValue().set(key, value, ttl);
