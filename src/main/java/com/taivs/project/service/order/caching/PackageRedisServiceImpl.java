@@ -20,10 +20,11 @@ public class PackageRedisServiceImpl implements PackageRedisService {
 
     private static final String VERSION_KEY_PATTERN = "search::version::user::%d";
 
-    private static final String ADMIN_VERSION_KEY = "search::version::admin";
 
     @Override
     public Page<PackageResponseDTO> getCachedPackages(String cacheKey, Pageable pageable) {
+        System.out.println("Test redis in docker");
+        System.out.println("Saved into Redis with key: " + cacheKey);
         List<PackageResponseDTO> cachedList = redisService.get(cacheKey, List.class);
         if (cachedList == null) return null;
         return new PageImpl<>(cachedList, pageable, cachedList.size());
@@ -37,6 +38,7 @@ public class PackageRedisServiceImpl implements PackageRedisService {
     @Override
     public String getUserCacheVersion(Long userId) {
         String key = String.format(VERSION_KEY_PATTERN,userId);
+        System.out.println("Getting version from Redis with key: " + key);
         String version = redisService.get(key,String.class);
         if(version == null){
             version = UUID.randomUUID().toString();
@@ -46,27 +48,12 @@ public class PackageRedisServiceImpl implements PackageRedisService {
         return version;
     }
 
+
     @Override
     public void bumpUserCacheVersion(Long userId) {
         String key = String.format(VERSION_KEY_PATTERN,userId);
         String newVersion = UUID.randomUUID().toString();
         redisService.set(key, newVersion, Duration.ofDays(1));
-    }
-
-    @Override
-    public String getAdminCacheVersion() {
-        String version = redisService.get(ADMIN_VERSION_KEY, String.class);
-        if (version == null) {
-            version = UUID.randomUUID().toString();
-            redisService.set(ADMIN_VERSION_KEY, version, Duration.ofDays(1));
-        }
-        return version;
-    }
-
-    @Override
-    public void bumpAdminCacheVersion() {
-        String version = UUID.randomUUID().toString();
-        redisService.set(ADMIN_VERSION_KEY, version, Duration.ofDays(1));
     }
 }
 

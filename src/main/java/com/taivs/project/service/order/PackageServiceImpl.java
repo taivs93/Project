@@ -152,10 +152,12 @@ public class PackageServiceImpl implements PackageService {
     public Page<PackageResponseDTO> searchPackages(String customerTel, Long id,
                                                    int page, int size,
                                                    String sortField, String sortDirection) {
+        System.out.println("Access to service");
         if (size > 20) size = 20;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
         User user = authService.getCurrentUser();
 
+        System.out.println("Prepare to get version");
         String version = packageRedisService.getUserCacheVersion(user.getId());
         String cacheKey = String.format("search::%d::%s::%d::%d::%d::%s::%s::v%s",
                 user.getId(),
@@ -165,12 +167,15 @@ public class PackageServiceImpl implements PackageService {
                 version
         );
 
+
+        System.out.println("Prepare to caching");
         Page<PackageResponseDTO> cached = packageRedisService.getCachedPackages(cacheKey, pageable);
         if (cached != null) return cached;
 
         Page<Package> pageResult = packageRepository.getPackages(user.getId(), customerTel, id, pageable);
         List<PackageResponseDTO> dtoList = pageResult.map(this::toResponse).getContent();
 
+        System.out.println("Caching into Redis");
         packageRedisService.cachePackages(cacheKey, dtoList, Duration.ofMinutes(10));
 
         return new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());

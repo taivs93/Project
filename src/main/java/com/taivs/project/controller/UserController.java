@@ -23,13 +23,13 @@ public class UserController {
     private UserService userService;
 
     @PatchMapping("/change-name")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SHOP') or hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO> updateUserDetails(@Valid @RequestBody NameChangeRequest req){
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("User name changed successfully").data(userService.changeUserName(req.getName())).build());
     }
 
     @GetMapping("/get-user-details/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getUserDetailsById(@PathVariable Long id){
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get user details successfully").data(userService.getUserDetailsById(id)).build());
     }

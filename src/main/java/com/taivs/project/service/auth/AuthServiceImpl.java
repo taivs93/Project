@@ -102,7 +102,7 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByName(req.getName())) {
             throw new ResourceAlreadyExistsException("Name already registered");
         }
-        Role role = roleRepository.findByName("USER").orElseThrow(() -> new DataNotFoundException("Role not found"));
+        Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
         User user = User.builder()
                 .tel(req.getTel())
                 .name(req.getName())

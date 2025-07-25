@@ -16,12 +16,11 @@ public class RedisConfig {
         template.setConnectionFactory(connectionFactory);
 
         Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        template.setDefaultSerializer(serializer);
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(serializer);
 
         return template;
     }
-
 }
-

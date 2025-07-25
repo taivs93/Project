@@ -19,21 +19,21 @@ public class ReportController {
     ReportService reportService;
 
     @PostMapping("/insert")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> insertReport(@Valid @RequestBody ReportDTO reportDTO, BindingResult result){
         ReportResponseDTO reportResponseDTO = reportService.insertReport(reportDTO);
         return ResponseEntity.ok(ResponseDTO.builder().status(201).message("Insert report successfully").data(reportResponseDTO).build());
     }
 
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> deleteReport(@PathVariable Long id){
         reportService.deleteReport(id);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Report deleted successfully").build());
     }
 
     @GetMapping("/get/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getReportById(@PathVariable Long id){
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get report by ID successfully").data(reportService.getReportId(id)).build());
     }

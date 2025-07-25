@@ -1,5 +1,6 @@
     package com.taivs.project.service.redis;
 
+    import jakarta.annotation.PostConstruct;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.data.redis.core.RedisTemplate;
     import org.springframework.stereotype.Service;
@@ -19,8 +20,16 @@
 
         @Override
         public <T> T get(String key, Class<T> clazz) {
-            Object val = redisTemplate.opsForValue().get(key);
-            return clazz.cast(val);
+            try {
+                System.out.println("Test Get");
+                Object val = redisTemplate.opsForValue().get(key);
+                System.out.println("Check test");
+                return clazz.cast(val);
+            } catch (Exception e) {
+                System.out.println("ERROR WHEN GET FROM REDIS:");
+                e.printStackTrace();
+                return null;
+            }
         }
 
         @Override

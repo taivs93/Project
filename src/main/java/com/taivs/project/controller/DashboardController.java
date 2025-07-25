@@ -24,21 +24,21 @@ public class DashboardController {
     private ProductService productService;
 
     @GetMapping("/user/top-revenue-products")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getTopRevenueProducts(){
         List<ProductResponseDTO> productResponseDTOS = productService.top10RevenueProducts();
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top revenue products successfully").data(productResponseDTOS).build());
     }
 
     @GetMapping("/user/top-stock-products")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getTopStockProducts(){
         List<ProductResponseDTO> productResponseDTOS = productService.top10StockProducts();
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(productResponseDTOS).build());
     }
 
     @GetMapping("user/get-revenue-by-time")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getRevenueByTime(@RequestParam String time){
         Double revenue = packageService.getRevenue(time);
         String roundedRevenue = String.format("%.2f", revenue);

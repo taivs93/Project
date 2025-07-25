@@ -25,35 +25,35 @@ public class PackageController {
     private PackageService packageService;
 
     @PostMapping("/get-extra-fee")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getExtraFee(@Valid @RequestBody List<PackageProductDTO> packageProductDTOS){
         Double extraFee = packageService.getExtraFee(packageProductDTOS);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get extra fee successfully").data(extraFee).build());
     }
 
     @PostMapping("/get-value")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getValue(@Valid @RequestBody List<PackageProductDTO> packageProductDTOS){
         Double value = packageService.getValue(packageProductDTOS);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get value successfully").data(value).build());
     }
 
     @PostMapping("/get-total-fee")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getTotalFee(@Valid @RequestBody PackageDTO packageDTO){
         Double totalFee = packageService.getTotalFee(packageDTO);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get total fee successfully").data(totalFee).build());
     }
 
     @PostMapping("/insert-draft")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> insertDraftPackage(@Valid @RequestBody PackageDTO packageDTO){
         PackageResponseDTO newPackageResponse = packageService.createDraftPackage(packageDTO);
         return ResponseEntity.status(201).body(ResponseDTO.builder().status(201).message("Insert draft package successfully").data(newPackageResponse).build());
     }
 
     @PatchMapping("/submit-package/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> insertPackage(@PathVariable Long id){
         PackageResponseDTO newPackageResponse = packageService.submitDraft(id);
         return ResponseEntity.status(201).body(ResponseDTO.builder().status(201).message("Submit package successfully").data(newPackageResponse).build());
@@ -69,15 +69,15 @@ public class PackageController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Update status successfully").data(packageResponseDTO).build());
     }
 
-    @GetMapping("search-packages")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> searchPackages(@RequestParam(required = false) String tel,
+    @GetMapping("/search-packages")
+    @PreAuthorize("hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> searchPackages(@RequestParam(required = false) String customerTel,
                                                       @RequestParam(required = false) Long id,
                                                       @RequestParam(defaultValue = "0") int page,
                                                       @RequestParam(defaultValue = "20") int size,
                                                       @RequestParam(defaultValue = "id") String sortField,
                                                       @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packagePage = packageService.searchPackages(tel, id, page, size, sortField, sortDirection);
+        Page<PackageResponseDTO> packagePage = packageService.searchPackages(customerTel, id, page, size, sortField, sortDirection);
 
         PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
                 packagePage.getContent(),
@@ -95,15 +95,15 @@ public class PackageController {
                 .build());
     }
 
-    @GetMapping("search-draft-packages")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ResponseDTO> searchDraftPackages(@RequestParam(required = false) String tel,
+    @GetMapping("/search-draft-packages")
+    @PreAuthorize("hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> searchDraftPackages(@RequestParam(required = false) String customerTel,
                                                            @RequestParam(required = false) Long id,
                                                            @RequestParam(defaultValue = "0") int page,
                                                            @RequestParam(defaultValue = "20") int size,
                                                            @RequestParam(defaultValue = "id") String sortField,
                                                            @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packagePage = packageService.searchDraftPackages(tel, id, page, size, sortField, sortDirection);
+        Page<PackageResponseDTO> packagePage = packageService.searchDraftPackages(customerTel, id, page, size, sortField, sortDirection);
 
         PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
                 packagePage.getContent(),
@@ -122,14 +122,14 @@ public class PackageController {
     }
 
     @PutMapping("/update-draft/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> updateDraftPackage(@PathVariable Long id, @Valid @RequestBody PackageDTO packageDTO){
         PackageResponseDTO packageResponseDTO = packageService.updateDraftPackage(id, packageDTO);
         return ResponseEntity.status(HttpStatus.OK).body(ResponseDTO.builder().status(200).message("Update draft package successfully").data(packageResponseDTO).build());
     }
 
     @GetMapping("/get-by-id/{id}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SHOP') or hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO> getPackageById(@PathVariable("id") Long id){
         PackageResponseDTO packageResponseDTO = packageService.getPackageById(id);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get package successfully!").data(packageService.findPackageById(id)).build());
@@ -162,7 +162,7 @@ public class PackageController {
     }
 
     @DeleteMapping("/delete-draft/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> deleteDraftPackageById(@PathVariable Long id){
         packageService.deleteDraftPackage(id);
         return ResponseEntity.ok(

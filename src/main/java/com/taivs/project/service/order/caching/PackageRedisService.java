@@ -17,8 +17,5 @@ public interface PackageRedisService {
 
     void bumpUserCacheVersion(Long userId);
 
-    String getAdminCacheVersion();
-
-    void bumpAdminCacheVersion();
 }
 

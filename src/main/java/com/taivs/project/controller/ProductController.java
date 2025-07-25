@@ -25,7 +25,7 @@ public class ProductController {
     ProductService productService;
 
     @PostMapping("/insert")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> insertProduct(@Valid @RequestBody ProductDTO productDTO){
         Product product = productService.createProduct(productDTO);
         ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
@@ -45,14 +45,14 @@ public class ProductController {
         return ResponseEntity.ok(ResponseDTO.builder().status(201).message("Product created successfully").data(productResponseDTO).build());
     }
 
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     @GetMapping("/get-by-id/{id}")
     public ResponseEntity<ResponseDTO> getProductById(@PathVariable("id") Long id){
         ProductResponseDTO productResponseDTO = productService.getProductById(id);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get product successfully!").data(productResponseDTO).build());
     }
 
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     @GetMapping("/search-products")
     public ResponseEntity<ResponseDTO> getProducts(
             @RequestParam(required = false) String name,
@@ -82,7 +82,7 @@ public class ProductController {
 
 
     @PutMapping("/update/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductDTO productDTO){
         Product product = productService.updateProduct(productId,productDTO);
         ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
@@ -101,14 +101,14 @@ public class ProductController {
     }
 
     @PatchMapping("/delete/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> deleteProduct(@PathVariable(name = "id") Long productId){
         productService.deleteProduct(productId);
         return ResponseEntity.ok(ResponseDTO.builder().status(204).message("Product deleted successfully").build());
     }
 
     @PostMapping("/{productId}/add-image")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> addImage(@PathVariable Long productId,
                                                 @RequestParam("file") MultipartFile file) {
         ProductImage productImage = productService.createProductImage(productId, file);
@@ -121,7 +121,7 @@ public class ProductController {
     }
 
     @PatchMapping("/delete-image/{imageId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> deleteImage(@PathVariable Long imageId){
         productService.deleteProductImage( imageId);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Image deleted successfully").build());

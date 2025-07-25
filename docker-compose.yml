@@ -21,6 +21,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   springboot-app:
     build:
@@ -28,11 +33,14 @@ services:
       dockerfile: Dockerfile
     container_name: springboot-app
     depends_on:
-      - mariadb
-      - redis
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_started
     ports:
       - "8181:8181"
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/project_db
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
@@ -47,8 +55,6 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-
-      SPRING_PROFILES_ACTIVE: docker
     restart: always
 
 volumes:
