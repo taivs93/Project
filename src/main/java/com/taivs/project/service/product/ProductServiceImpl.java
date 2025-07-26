@@ -2,8 +2,10 @@ package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
 import com.taivs.project.dto.response.ProductResponseDTO;
+import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.ProductImage;
+import com.taivs.project.entity.TopRevenueProduct;
 import com.taivs.project.entity.User;
 import com.taivs.project.exception.*;
 import com.taivs.project.repository.ProductImageRepository;
@@ -95,8 +97,18 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
                 .map(this::toDTO);
     }
-    public List<ProductResponseDTO> top10RevenueProducts(){
-        return productRepository.findTop10RevenueProducts(authService.getCurrentUser().getId()).stream().map(this::toDTO).toList();
+    public List<TopRevenueProductResponse> top10RevenueProducts() {
+        Long userId = authService.getCurrentUser().getId();
+
+        List<TopRevenueProduct> topProducts = productRepository.findTop10RevenueProducts(userId);
+
+        return topProducts.stream()
+                .map(p -> TopRevenueProductResponse.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .revenueQuantity(p.getTotalQuantity())
+                        .build())
+                .toList();
     }
     public List<ProductResponseDTO> top10StockProducts(){
 

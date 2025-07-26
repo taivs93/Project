@@ -1,6 +1,7 @@
 package com.taivs.project.repository;
 
 import com.taivs.project.entity.Product;
+import com.taivs.project.entity.TopRevenueProduct;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,23 +39,25 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findById(@Param("id") Long id);
 
     @Query(value = """
-    SELECT p.*
+    SELECT p.id, p.name, SUM(pp.quantity) AS totalQuantity
     FROM products p
     JOIN package_products pp ON p.id = pp.product_id
     JOIN packages pk ON pp.package_id = pk.id
-    WHERE pk.status = 20 AND pk.created_by = :userId
+    WHERE pk.status = 20 AND pk.created_by = :userId AND p.is_deleted = 0
     GROUP BY p.id
-    ORDER BY SUM(pp.quantity) DESC
+    ORDER BY totalQuantity DESC
     LIMIT 10
-    """, nativeQuery = true)
-    List<Product> findTop10RevenueProducts(@Param("userId") Long userId);
+""", nativeQuery = true)
+    List<TopRevenueProduct> findTop10RevenueProducts(@Param("userId") Long userId);
+
 
     @Query(value = """
-    SELECT *
-    FROM product
-    WHERE is_deleted = 0 AND user_id = :userId
-    ORDER BY stock DESC
+    SELECT p.*
+    FROM products p
+    WHERE p.is_deleted = 0 AND p.created_by = :user_id
+    ORDER BY p.stock DESC
     LIMIT 10
     """, nativeQuery = true)
-    List<Product> findTop10StockProducts(@Param("userId") Long userId);
+    List<Product> findTop10StockProducts(@Param("user_id") Long userId);
+
 }

@@ -2,6 +2,7 @@ package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
 import com.taivs.project.dto.response.ProductResponseDTO;
+import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.ProductImage;
 import org.springframework.data.domain.Page;
@@ -15,7 +16,7 @@ public interface ProductService {
 
     Page<ProductResponseDTO> searchProducts(String name, String barcode, int page, int size, String sortField, String sortDirection);
 
-    List<ProductResponseDTO> top10RevenueProducts();
+    List<TopRevenueProductResponse> top10RevenueProducts();
 
     List<ProductResponseDTO> top10StockProducts();
 

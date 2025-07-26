@@ -3,6 +3,7 @@ package com.taivs.project.controller;
 import com.taivs.project.dto.response.PagedResponse;
 import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.dto.response.ResponseDTO;
+import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.service.order.PackageService;
 import com.taivs.project.service.product.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ public class DashboardController {
     @GetMapping("/user/top-revenue-products")
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getTopRevenueProducts(){
-        List<ProductResponseDTO> productResponseDTOS = productService.top10RevenueProducts();
+        List<TopRevenueProductResponse> productResponseDTOS = productService.top10RevenueProducts();
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top revenue products successfully").data(productResponseDTOS).build());
     }
 
@@ -37,7 +38,7 @@ public class DashboardController {
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(productResponseDTOS).build());
     }
 
-    @GetMapping("user/get-revenue-by-time")
+    @GetMapping("/user/get-revenue-by-time")
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getRevenueByTime(@RequestParam String time){
         Double revenue = packageService.getRevenue(time);
