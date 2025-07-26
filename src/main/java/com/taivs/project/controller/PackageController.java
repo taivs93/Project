@@ -172,4 +172,14 @@ public class PackageController {
                         .build()
         );
     }
+
+    @PatchMapping("/cancel-package/{id}")
+    @PreAuthorize("hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> cancelPackage(@PathVariable Long id){
+        return ResponseEntity.status(HttpStatus.OK).body(ResponseDTO.builder().status(200)
+                .message("Cancel package successfully.")
+                .data(packageService.cancelPackage(id))
+                .build()
+        );
+    }
 }

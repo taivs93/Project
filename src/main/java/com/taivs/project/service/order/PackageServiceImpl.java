@@ -80,15 +80,26 @@ public class PackageServiceImpl implements PackageService {
         double base = dto.getPickMoney() + getExtraFee(dto.getPackageItems());
         return Math.round((dto.getShipPayer() == ShipPayer.USER ? base : base + 30000) * 100.0) / 100.0;
     }
+
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
-                .orElse(Customer.builder().tel(dto.getCustomerTel()).user(user).build());
-        customer.setName(dto.getCustomerName());
-        customerRepository.save(customer);
+                .orElse(null);
+
+        if (customer == null) {
+            customer = Customer.builder()
+                    .tel(dto.getCustomerTel())
+                    .name(dto.getCustomerName())
+                    .user(user)
+                    .build();
+        } else {
+            customer.setName(dto.getCustomerName());
+        }
+
+        customer = customerRepository.save(customer);
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
@@ -126,7 +137,7 @@ public class PackageServiceImpl implements PackageService {
         newPackage.setPackageItems(items);
         packageRepository.save(newPackage);
 
-        return toResponse(newPackage);
+        return toResponse(newPackage,false);
     }
 
     public PackageResponseDTO updatePackageStatus(Long id, int newStatus) {
@@ -145,7 +156,7 @@ public class PackageServiceImpl implements PackageService {
         pack.setStatus(newStatus);
         packageRepository.save(pack);
 
-        return toResponse(pack);
+        return toResponse(pack,true);
     }
 
     @Override
@@ -173,7 +184,7 @@ public class PackageServiceImpl implements PackageService {
         if (cached != null) return cached;
 
         Page<Package> pageResult = packageRepository.getPackages(user.getId(), customerTel, id, pageable);
-        List<PackageResponseDTO> dtoList = pageResult.map(this::toResponse).getContent();
+        List<PackageResponseDTO> dtoList = pageResult.map(pack -> toResponse(pack,false)).getContent();
 
         System.out.println("Caching into Redis");
         packageRedisService.cachePackages(cacheKey, dtoList, Duration.ofMinutes(10));
@@ -186,14 +197,14 @@ public class PackageServiceImpl implements PackageService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
         User user = authService.getCurrentUser();
         return packageRepository.findDraftPackagesByCustomerTelOrId(user.getId(),customerTel, id, pageable)
-                .map(this::toResponse);
+                .map(pack -> toResponse(pack,false));
     }
 
     private boolean isValidTransition(int from, int to) {
         return allowedTransitions.stream().anyMatch(pair -> pair[0] == from && pair[1] == to);
     }
 
-    private PackageResponseDTO toResponse(Package pack) {
+    private PackageResponseDTO toResponse(Package pack, boolean includeUserId) {
         CustomerLiteDTO customerDTO = CustomerLiteDTO.builder()
                 .id(pack.getCustomer().getId())
                 .name(pack.getCustomer().getName())
@@ -219,7 +230,7 @@ public class PackageServiceImpl implements PackageService {
                         .build())
                 .toList();
 
-        return PackageResponseDTO.builder()
+        PackageResponseDTO.PackageResponseDTOBuilder builder = PackageResponseDTO.builder()
                 .id(pack.getId())
                 .address(pack.getAddress())
                 .customer(customerDTO)
@@ -231,8 +242,11 @@ public class PackageServiceImpl implements PackageService {
                 .shipPayer(pack.getShipPayer())
                 .status(pack.getStatus())
                 .isDraft(pack.getIsDraft())
-                .totalFee(pack.getTotalFee())
-                .build();
+                .totalFee(pack.getTotalFee());
+
+        if (includeUserId) builder.userId(pack.getUser().getId());
+
+        return builder.build();
     }
 
     @Transactional
@@ -264,7 +278,7 @@ public class PackageServiceImpl implements PackageService {
 
         draft.setIsDraft((byte) 0);
 
-        return toResponse(packageRepository.save(draft));
+        return toResponse(packageRepository.save(draft),false);
     }
     @Transactional
     public PackageResponseDTO updateDraftPackage(Long id, PackageDTO dto) {
@@ -321,7 +335,7 @@ public class PackageServiceImpl implements PackageService {
         pack.getPackageItems().addAll(newItems);
 
         packageRepository.save(pack);
-        return toResponse(pack);
+        return toResponse(pack,false);
     }
 
     public PackageResponseDTO getPackageById(Long id){
@@ -329,7 +343,7 @@ public class PackageServiceImpl implements PackageService {
         User user = authService.getCurrentUser();
         boolean isAdmin = user.getUserRoles().stream().anyMatch(userRole -> "ADMIN".equals(userRole.getRole().getName()));
         if (!isAdmin && !user.equals(aPackage.getUser())) throw new UnauthorizedAccessException("Unauthorized to access");
-        return toResponse(aPackage);
+        return toResponse(aPackage,false);
     }
 
     public Double getRevenue(@RequestParam String time){
@@ -349,14 +363,14 @@ public class PackageServiceImpl implements PackageService {
         Package order = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
         Role userRole = roleRepository.findByName("USER").orElseThrow(() -> new DataNotFoundException("Role not found"));
         if(user.getUserRoles().contains(userRole)  && !Objects.equals(order.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Unauthorized");
-        return toResponse(order);
+        return toResponse(order,false);
     }
 
     @Override
     public Page<PackageResponseDTO> getPackages(Long userId,String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
         return packageRepository.getPackages(userId,customerTel,id,pageable)
-                .map(this::toResponse);
+                .map(pack -> toResponse(pack,true));
     }
 
     @Override
@@ -366,6 +380,23 @@ public class PackageServiceImpl implements PackageService {
         User user = authService.getCurrentUser();
         if (pack.getUser().getId() != user.getId()) throw new UnauthorizedAccessException("Unauthorize to access this package.");
         packageRepository.deleteById(id);
+    }
+
+    @Override
+    public PackageResponseDTO cancelPackage(Long id) {
+        Package pack = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
+
+        User user = authService.getCurrentUser();
+
+        if (!user.getId().equals(pack.getUser().getId())) throw new UnauthorizedAccessException("Access denied");
+
+        if (pack.getStatus() != 0) throw new InvalidStatusTransitionException("Only can cancel package with status 0");
+
+        pack.setStatus(-1);
+
+        packageRepository.save(pack);
+
+        return toResponse(pack,false);
     }
 
 }

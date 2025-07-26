@@ -35,4 +35,6 @@ public interface PackageService {
     Page<PackageResponseDTO> getPackages(Long userId, String customerTel, Long id, int page, int size, String sortField, String sortDirection);
 
     void deleteDraftPackage(Long id);
+
+    PackageResponseDTO cancelPackage(Long id);
 }

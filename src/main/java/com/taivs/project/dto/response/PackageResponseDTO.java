@@ -1,5 +1,6 @@
 package com.taivs.project.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -41,6 +42,10 @@ public class PackageResponseDTO {
 
     @JsonProperty("is_draft")
     private byte isDraft;
+
+    @JsonProperty("user_id")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long userId;
 
     private List<PackageProductResponseDTO> packageItems;
 }
