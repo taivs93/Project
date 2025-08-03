@@ -1,10 +1,10 @@
 package com.taivs.project.dto.request;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Data;
 import com.taivs.project.validation.password.ValidPassword;
 import com.taivs.project.validation.phone.ValidPhone;
+import lombok.Getter;
 
-@Data
+@Getter
 public class LoginRequest {
 
     @ValidPhone

@@ -1,7 +1,12 @@
 package com.taivs.project.service.auth;
 
+import com.taivs.project.dto.request.LoginRequest;
 import com.taivs.project.dto.request.PasswordChangeRequest;
+import com.taivs.project.dto.request.RefreshRequest;
 import com.taivs.project.dto.request.RegisterRequest;
+import com.taivs.project.dto.response.LoginResponse;
+import com.taivs.project.dto.response.RefreshTokenResponse;
+import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.User;
 
 import java.util.List;
@@ -9,15 +14,15 @@ import java.util.Map;
 
 public interface AuthService {
 
-    List<?> login(String tel, String password);
+    LoginResponse login(LoginRequest req);
 
-    Map<String, String> refresh(String refreshToken, String sessionId);
+    RefreshTokenResponse refresh(RefreshRequest refreshRequest);
 
-    void logout(String sessionId);
+    void logout();
 
-    User register(RegisterRequest req);
+    UserResponseDTO register(RegisterRequest req);
 
-    List<?> changePassword(PasswordChangeRequest req);
+    void changePassword(PasswordChangeRequest req);
 
     User getCurrentUser();
 }

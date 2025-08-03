@@ -1,31 +1,43 @@
 package com.taivs.project.security.jwt;
 
+import com.taivs.project.entity.Session;
+import com.taivs.project.entity.User;
+import com.taivs.project.exception.DataNotFoundException;
+import com.taivs.project.exception.InvalidSessionException;
+import com.taivs.project.repository.SessionRepository;
+import com.taivs.project.repository.UserRepository;
+import com.taivs.project.security.encryption.TokenEncryptor;
+import com.taivs.project.service.token.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import com.taivs.project.entity.Token;
-import com.taivs.project.entity.TokenType;
 import com.taivs.project.security.service.UserDetailsServiceImpl;
-import com.taivs.project.service.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
-import java.util.Optional;
 
 @Component
 public class JWTFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtService jwtService;
+    private SessionRepository sessionRepository;
 
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    private TokenEncryptor tokenEncryptor;
+
+    @Autowired
+    private TokenService tokenService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -33,28 +45,31 @@ public class JWTFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        System.out.println("GET in do filter method");
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
+            String encryptedJwt = authHeader.substring(7);
+            String rawJwt = tokenEncryptor.decrypt(encryptedJwt);
+            String sessionId = tokenService.extractSessionId(rawJwt);
+            System.out.println(rawJwt);
+            System.out.println(sessionId);
+            Session session = sessionRepository.findSessionById(sessionId)
+                    .orElseThrow(() -> new DataNotFoundException("Session not found"));
+            if (!session.isActive()) throw new InvalidSessionException("Session is not active");
+            System.out.println("Can find sesion");
+            if(tokenService.isTokenValid(rawJwt)
+                    && "ACCESS".equals(tokenService.extractTokenType(rawJwt))
+                    && tokenService.isJwtStructureValid(rawJwt)){
+                User user = userRepository.findById(Long.parseLong(tokenService.extractUserId(rawJwt)))
+                        .orElseThrow(() -> new DataNotFoundException("User not found"));
 
-            Optional<Token> optionalToken = jwtService.findTokenInDatabase(jwt);
-            if (optionalToken.isPresent()) {
-                Token tokenEntity = optionalToken.get();
+                UserDetails userDetails = userDetailsService.loadUserByUsername(user.getTel());
 
-                if (!tokenEntity.isRevoked()
-                        && !tokenEntity.isExpired()
-                        && tokenEntity.getTokenType().equals(TokenType.ACCESS)
-                        && jwtService.isJwtStructureValid(jwt)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
 
-                    String tel = jwtService.extractTel(jwt);
-                    UserDetails user = userDetailsService.loadUserByUsername(tel);
-
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 

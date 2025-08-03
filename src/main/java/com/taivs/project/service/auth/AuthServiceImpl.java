@@ -1,14 +1,23 @@
 package com.taivs.project.service.auth;
 
+import com.taivs.project.dto.request.LoginRequest;
 import com.taivs.project.dto.request.PasswordChangeRequest;
+import com.taivs.project.dto.request.RefreshRequest;
 import com.taivs.project.dto.request.RegisterRequest;
+import com.taivs.project.dto.response.LoginResponse;
+import com.taivs.project.dto.response.RefreshTokenResponse;
 import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.*;
 import com.taivs.project.exception.*;
 import com.taivs.project.repository.RoleRepository;
+import com.taivs.project.repository.SessionRepository;
 import com.taivs.project.repository.UserRepository;
-import com.taivs.project.service.jwt.JwtService;
+
+import com.taivs.project.security.encryption.TokenEncryptor;
+import com.taivs.project.security.jwt.JWTUtil;
+import com.taivs.project.service.session.SessionService;
 import com.taivs.project.service.token.TokenService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,14 +25,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
 
 @Service
-@Transactional
+
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
@@ -39,10 +45,16 @@ public class AuthServiceImpl implements AuthService {
     private RoleRepository roleRepository;
 
     @Autowired
-    private JwtService jwtService;
+    private SessionRepository sessionRepository;
 
     @Autowired
-    PasswordEncoder passwordEncoder;
+    private SessionService sessionService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private TokenEncryptor tokenEncryptor;
 
     @Override
     public User getCurrentUser() {
@@ -51,56 +63,73 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
     }
 
-    private Map<String, String> revokeAndGenerateNewToken(User user) {
-        tokenService.revokeAllByUser(user);
+    @Transactional
+    public LoginResponse login(LoginRequest loginRequest) {
+        System.out.println("start authenticating");
+        authManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getTel(),loginRequest.getPassword()));
 
-        String sessionId = UUID.randomUUID().toString();
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
+        User user = userRepository.findByTel(loginRequest.getTel())
+                .orElseThrow(() -> new DataNotFoundException("Tel not found"));
 
-        tokenService.saveToken(user, accessToken, sessionId, TokenType.ACCESS);
-        tokenService.saveToken(user, refreshToken, sessionId, TokenType.REFRESH);
+        System.out.println("Checking");
+        sessionRepository.deleteAllByUserId(user.getId());
+        System.out.println("Read session.");
+        Session session = sessionService.createSession(user);
 
-        return Map.of(
-                "accessToken", accessToken,
-                "refreshToken", refreshToken,
-                "sessionId", sessionId,
-                "tokenType", "Bearer"
-        );
+        String accessToken = tokenService.generateAccessToken(user, session.getId());
+        String refreshToken = tokenService.generateRefreshToken(user,session.getId());
+        System.out.println(accessToken);
+        System.out.println(refreshToken);
+        return LoginResponse.builder().accessToken(accessToken).refreshToken(refreshToken)
+                .userResponseDTO(UserResponseDTO.fromEntity(user)).build();
     }
 
-    public List<?> login(String tel, String password) {
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(tel, password));
-        User user = userRepository.findByTel(tel)
-                .orElseThrow(() -> new UsernameNotFoundException("Tel not found:" + tel));
-        return List.of(revokeAndGenerateNewToken(user), UserResponseDTO.fromEntity(user));
+    @Transactional
+    public RefreshTokenResponse refresh(RefreshRequest request) {
+
+        String rawRefreshToken = tokenEncryptor.decrypt(request.getRefreshToken());
+
+        if(!tokenService
+                .isTokenValid(rawRefreshToken)) throw new InvalidRefreshToken("Invalid refresh token");
+
+        String tokenType = tokenService
+                .extractTokenType(rawRefreshToken);
+        if(!"REFRESH".equals(tokenType)) throw new InvalidTokenType("Invalid token type");
+
+        String userId = tokenService
+                .extractUserId(rawRefreshToken);
+        String sessionId = tokenService
+                .extractSessionId(rawRefreshToken);
+
+        User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new DataNotFoundException("User Id not found."));
+
+        Session session = sessionRepository.findSessionById(sessionId).get();
+
+        sessionRepository.delete(session);
+
+        Session newSession = sessionService.createSession(user);
+
+        String newRefreshToken = tokenService
+                .generateRefreshToken(user, newSession.getId());
+        String newAccessToken = tokenService
+                .generateAccessToken(user, newSession.getId());
+
+        return RefreshTokenResponse.builder().newRefreshToken(newRefreshToken).newAccessToken(newAccessToken).userResponseDTO(UserResponseDTO.fromEntity(user)).build();
     }
 
+    public void logout() {
+        String authHeader = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
+        String token = authHeader.substring(7);
+        String sessionId = tokenService
+                .extractSessionId(token);
 
-    public Map<String, String> refresh(String refreshToken, String sessionId) {
-        Token token = tokenService.findValidToken(refreshToken, sessionId)
-                .orElseThrow(() -> new InvalidRefreshToken("Invalid refresh token"));
-
-        User user = token.getUser();
-        if (user.getStatus() != 1) throw new UserInactiveException("User is invalid");
-        return revokeAndGenerateNewToken(user);
+        Session session = sessionRepository.findSessionById(sessionId).get();
+        sessionRepository.delete(session);
     }
 
-    public void logout(String sessionId) {
-        Token accessToken = tokenService.findValidAccessTokenBySession(sessionId)
-                .orElseThrow(() -> new DataNotFoundException("Session not found"));
-        Token refreshToken = tokenService.findValidRefreshTokenBySession(sessionId)
-                        .orElseThrow(() -> new DataNotFoundException("Session not found"));
-        tokenService.revokeToken(accessToken);
-        tokenService.revokeToken(refreshToken);
-    }
-
-    public User register(RegisterRequest req) {
+    public UserResponseDTO register(RegisterRequest req) {
         if (userRepository.existsByTel(req.getTel())) {
             throw new ResourceAlreadyExistsException("Tel already registered");
-        }
-        if (userRepository.existsByName(req.getName())) {
-            throw new ResourceAlreadyExistsException("Name already registered");
         }
         Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
         User user = User.builder()
@@ -111,25 +140,30 @@ public class AuthServiceImpl implements AuthService {
                 .address(req.getAddress())
                 .build();
         userRepository.save(user);
-
         UserRole userRole = new UserRole();
         userRole.setUser(user);
         userRole.setRole(role);
         userRole.setId(new UserRoleId(user.getId(), role.getId()));
         user.setUserRoles(List.of(userRole));
-        return user;
+        userRepository.save(user);
+        return UserResponseDTO.fromEntity(user);
     }
-    public List<?> changePassword(PasswordChangeRequest req) {
+
+    public void changePassword(PasswordChangeRequest req) {
         User user = getCurrentUser();
+
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             throw new InvalidCredentialException("Wrong old password");
         }
+
         if(req.getNewPassword().equals(req.getOldPassword())){
             throw new InvalidPasswordException("Invalid new password");
         }
+
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         userRepository.save(user);
-        return login(user.getTel(), req.getNewPassword());
+
+        sessionRepository.deleteAllByUserId(user.getId());
     }
 }
 

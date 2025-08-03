@@ -13,31 +13,31 @@ import java.util.Optional;
 public interface PackageRepository extends JpaRepository<Package, Long>{
 
     @Query("SELECT p FROM Package p " +
-            "WHERE (:customer_tel IS NULL OR p.customer.tel = :customer_tel) " +
+            "WHERE (:customer_tel IS NULL OR p.customer.tel = :customerTel) " +
             "AND (:id IS NULL OR p.id = :id)" +
             "AND p.isDraft = 1" +
-            "AND p.user.id = :user_id")
-    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("user_id") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
+            "AND p.user.id = :userId")
+    Page<Package> findDraftPackagesByCustomerTelOrId(@Param("userId") Long userId, @Param("customerTel") String customerTel, @Param("id") Long id, Pageable pageable);
 
     @Query(value = """
      SELECT COALESCE(SUM(total_fee), 0)
      FROM packages
      WHERE DATE(created_at) >= CURDATE()
        AND DATE(created_at) < CURDATE() + INTERVAL 1 DAY
-       AND created_by = :user_id
+       AND created_by = :userId
        AND status = 20
      """, nativeQuery = true)
-    double getTodayRevenue(@Param("user_id") Long userId);
+    double getTodayRevenue(@Param("userId") Long userId);
 
     @Query(value = """
      SELECT COALESCE(SUM(total_fee), 0)
      FROM packages
 WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
   AND DATE(created_at) <  DATE_FORMAT(NOW() + INTERVAL 1 MONTH, '%Y-%m-01')
-       AND created_by = :user_id
+       AND created_by = :userId
        AND status = 20
      """, nativeQuery = true)
-    double getThisMonthRevenue(@Param("user_id") Long userId);
+    double getThisMonthRevenue(@Param("userId") Long userId);
 
     @Query(value = """
      SELECT COALESCE(SUM(total_fee), 0)
@@ -45,17 +45,17 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
      WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-01-01')
      AND DATE(created_at) <  DATE_FORMAT(NOW() + INTERVAL 1 YEAR, '%Y-01-01')
      AND status = 20
-     AND created_by = :user_id
+     AND created_by = :userId
      """, nativeQuery = true)
-    double getThisYearRevenue(@Param("user_id") Long userId);
+    double getThisYearRevenue(@Param("userId") Long userId);
 
     Optional<Package> findPackageById(Long id);
 
     @Query("""
             SELECT p FROM Package p
-            WHERE (:user_id IS NULL OR p.user.id = :user_id)
-            AND (:customer_tel IS NULL OR p.customer.tel LIKE %:customer_tel%)
+            WHERE (:user_id IS NULL OR p.user.id = :userId)
+            AND (:customer_tel IS NULL OR p.customer.tel LIKE %:customerTel%)
             AND (:id IS NULL OR p.id = :id)
             """)
-    Page<Package> getPackages(@Param("user_id") Long userId, @Param("customer_tel") String customerTel, @Param("id") Long id, Pageable pageable);
+    Page<Package> getPackages(@Param("userId") Long userId, @Param("customerTel") String customerTel, @Param("id") Long id, Pageable pageable);
 }

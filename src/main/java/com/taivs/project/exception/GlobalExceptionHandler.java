@@ -65,7 +65,8 @@ public class GlobalExceptionHandler {
             InvalidFileException.class,
             InvalidDraftPackageException.class,
             InvalidStatusTransitionException.class,
-            InvalidProductUpdated.class
+            InvalidProductUpdated.class,
+            InvalidTokenType.class
     })
     public ResponseEntity<ResponseDTO> handleBadRequest(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
@@ -114,7 +115,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 ResponseDTO.builder()
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                        .message("Internal server error")
+                        .message(ex.getMessage())
                         .build()
         );
     }

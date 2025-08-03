@@ -1,5 +1,6 @@
 package com.taivs.project.controller;
 
+import com.taivs.project.dto.response.LoginResponse;
 import jakarta.validation.Valid;
 import com.taivs.project.dto.request.LoginRequest;
 import com.taivs.project.dto.request.PasswordChangeRequest;
@@ -25,18 +26,20 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@Valid @RequestBody LoginRequest req) {
-        List<?> loginResults = authService.login(req.getTel(), req.getPassword());
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Login successfully").data(loginResults).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Login successfully")
+                .data(authService.login(req)).build());
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<ResponseDTO> refresh(@Valid @RequestBody RefreshRequest req,@RequestHeader("X-Session-Id") String sessionId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDTO.builder().status(201).message("Refresh token successfully").data(authService.refresh(req.getRefreshToken(), sessionId)).build());
+    public ResponseEntity<ResponseDTO> refresh(@Valid @RequestBody RefreshRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDTO.builder().status(201).message("Refresh token successfully")
+                .data(authService.refresh(req)).build());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ResponseDTO> logout(@RequestHeader("X-Session-Id") String sessionId) {
-        authService.logout(sessionId);
+    public ResponseEntity<ResponseDTO> logout() {
+        System.out.println("Get into controller");
+        authService.logout();
         return ResponseEntity.ok().body(
                 ResponseDTO.builder().status(200).message("Logout successfully").build()
         );
@@ -44,12 +47,13 @@ public class AuthController {
 
     @PatchMapping("/change-password")
     public ResponseEntity<ResponseDTO> changePassword(@Valid @RequestBody PasswordChangeRequest req) {
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Change password successfully").data(authService.changePassword(req)).build());
+        authService.changePassword(req);
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Change password successfully").build());
     }
 
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest req) {
+    public ResponseEntity<ResponseDTO> registerUser(@Valid @RequestBody RegisterRequest req) {
         if (!req.getPassword().equals(req.getRetypePassword())) {
             return ResponseEntity.badRequest().body(
                     ResponseDTO.builder()
@@ -59,12 +63,11 @@ public class AuthController {
             );
         }
 
-        User user = authService.register(req);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ResponseDTO.builder()
                         .status(201)
                         .message("Register successfully")
-                        .data(UserResponseDTO.fromEntity(user))
+                        .data(authService.register(req))
                         .build());
     }
 }

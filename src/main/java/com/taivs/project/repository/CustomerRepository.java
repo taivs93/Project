@@ -23,8 +23,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     @Query("SELECT c FROM Customer c WHERE c.user.id = :userId " +
             "AND c.deleteStatus = 0" +
-            "AND (c.tel IS NULL OR c.tel LIKE %:customer_tel%)")
-    Page<Customer> getListCustomer(Pageable pageable, @Param("userId") Long id,@Param("customer_tel") String customerTel);
+            "AND (c.tel IS NULL OR c.tel LIKE %:customerTel%)")
+    Page<Customer> getListCustomer(Pageable pageable, @Param("userId") Long id,@Param("customerTel") String customerTel);
 
     @Query("""
             SELECT c FROM Customer c

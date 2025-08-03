@@ -30,10 +30,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("""
             SELECT u FROM User u
-            WHERE (:user_tel IS NULL OR u.tel LIKE %:user_tel%)
+            WHERE (:userTel IS NULL OR u.tel LIKE %:userTel%)
             AND u.status = 1
             """)
-    Page<User> getUsers(@Param("user_tel") String tel, Pageable pageable);
+    Page<User> getUsers(@Param("userTel") String tel, Pageable pageable);
 
     @Query("""
             SELECT u FROM User u

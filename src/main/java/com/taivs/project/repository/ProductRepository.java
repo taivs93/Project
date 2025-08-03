@@ -54,10 +54,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = """
     SELECT p.*
     FROM products p
-    WHERE p.is_deleted = 0 AND p.created_by = :user_id
+    WHERE p.is_deleted = 0 AND p.created_by = :userId
     ORDER BY p.stock DESC
     LIMIT 10
     """, nativeQuery = true)
-    List<Product> findTop10StockProducts(@Param("user_id") Long userId);
+    List<Product> findTop10StockProducts(@Param("userId") Long userId);
 
 }

@@ -1,6 +1,7 @@
 package com.taivs.project.service.user;
 
 import com.taivs.project.exception.UnauthorizedAccessException;
+import com.taivs.project.repository.SessionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.taivs.project.dto.response.UserResponseDTO;
@@ -8,7 +9,6 @@ import com.taivs.project.entity.User;
 import com.taivs.project.exception.DataNotFoundException;
 import com.taivs.project.exception.ResourceAlreadyExistsException;
 import com.taivs.project.repository.CustomerRepository;
-import com.taivs.project.repository.TokenRepository;
 import com.taivs.project.repository.UserRepository;
 import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,16 +24,17 @@ public class UserServiceImpl implements UserService {
     private CustomerRepository customerRepository;
 
     @Autowired
-    private TokenRepository tokenRepository;
+    private AuthService authService;
 
     @Autowired
-    private AuthService authService;
+    private SessionRepository sessionRepository;
 
     public UserResponseDTO deActiveUser(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new DataNotFoundException("User not found"));
         if (user.getStatus() == 1) user.setStatus((byte) 0);
+        sessionRepository.deleteAllByUserId(user.getId());
         userRepository.save(user);
-        tokenRepository.revokeAllByUser(user);
+
         return UserResponseDTO.fromEntity(user);
     }
 

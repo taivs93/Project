@@ -14,7 +14,7 @@ import java.util.List;
 public class PackageDTO {
 
     @NotEmpty(message = "Package items are required")
-    @JsonProperty("package_items")
+    @JsonProperty("package_items")//Valid
     private List<PackageProductDTO> packageItems;
 
     @NotEmpty(message = "Address is required")

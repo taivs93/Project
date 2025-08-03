@@ -1,5 +1,6 @@
 package com.taivs.project.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -7,6 +8,7 @@ import lombok.Data;
 public class RefreshRequest {
 
     @NotBlank(message = "Refresh Token must not be null")
+    @JsonProperty(value = "refresh_token")
     private String refreshToken;
 
 }

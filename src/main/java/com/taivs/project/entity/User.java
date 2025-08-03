@@ -30,7 +30,7 @@ public class User extends BaseEntity {
     @Column(name = "password", nullable = false, length = 250)
     private String password;
 
-    @Column(name = "name", nullable = false, unique = true, length = 250)
+    @Column(name = "name", nullable = false, unique = false, length = 250)
     private String name;
 
     @Column(name = "address",nullable = false,length = 400)
@@ -52,7 +52,7 @@ public class User extends BaseEntity {
     private List<Report> reports;
 
     @OneToMany(mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private List<Token> tokens;
+    private List<Session> sessions;
 
     @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true,fetch = FetchType.EAGER)
     private List<UserRole> userRoles;

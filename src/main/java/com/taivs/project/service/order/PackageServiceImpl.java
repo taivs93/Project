@@ -87,7 +87,7 @@ public class PackageServiceImpl implements PackageService {
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
-                .orElse(null);
+                .orElse(null);//
 
         if (customer == null) {
             customer = Customer.builder()
@@ -122,7 +122,7 @@ public class PackageServiceImpl implements PackageService {
             int quantity = entry.getValue();
 
             Product p = productRepository.findById(productId)
-                    .orElseThrow(() -> new DataNotFoundException("Product not found: " + productId));
+                    .orElseThrow(() -> new DataNotFoundException("Product not found: " + productId));//?
 
             if (!p.getUser().equals(user)) throw new UnauthorizedAccessException("Unauthorized product access");
 

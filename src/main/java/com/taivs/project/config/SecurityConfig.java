@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh-token").permitAll()
+                        .requestMatchers("/api/auth/logout").hasAnyRole("SHOP","ADMIN")
                         .requestMatchers("/api/package/get-by-id/**").hasAnyRole("SHOP", "ADMIN")
                         .requestMatchers("/api/user/get-user-details/{id}").hasAnyRole("SHOP", "ADMIN")
                         .requestMatchers("/api/user/change-name").hasAnyRole("SHOP", "ADMIN")
