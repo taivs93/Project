@@ -1,6 +1,7 @@
 package com.taivs.project.controller;
 
 import com.taivs.project.dto.response.LoginResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import com.taivs.project.dto.request.LoginRequest;
 import com.taivs.project.dto.request.PasswordChangeRequest;
@@ -13,6 +14,7 @@ import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,9 +39,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ResponseDTO> logout() {
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> logout(HttpServletRequest request) {
         System.out.println("Get into controller");
-        authService.logout();
+        authService.logout(request);
         return ResponseEntity.ok().body(
                 ResponseDTO.builder().status(200).message("Logout successfully").build()
         );

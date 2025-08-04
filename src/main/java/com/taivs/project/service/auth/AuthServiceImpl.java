@@ -17,6 +17,7 @@ import com.taivs.project.security.encryption.TokenEncryptor;
 import com.taivs.project.security.jwt.JWTUtil;
 import com.taivs.project.service.session.SessionService;
 import com.taivs.project.service.token.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -117,39 +118,43 @@ public class AuthServiceImpl implements AuthService {
         return RefreshTokenResponse.builder().newRefreshToken(newRefreshToken).newAccessToken(newAccessToken).userResponseDTO(UserResponseDTO.fromEntity(user)).build();
     }
 
-    public void logout() {
-        String authHeader = SecurityContextHolder.getContext().getAuthentication().getCredentials().toString();
-        String token = authHeader.substring(7);
-        String sessionId = tokenService
-                .extractSessionId(token);
+    public void logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Invalid Authorization header");
+        }
 
-        Session session = sessionRepository.findSessionById(sessionId).get();
-        sessionRepository.delete(session);
+        String encryptedToken = authHeader.substring(7);
+        String rawToken = tokenEncryptor.decrypt(encryptedToken);
+        String sessionId = tokenService.extractSessionId(rawToken);
+
+        sessionRepository.findSessionById(sessionId)
+                .ifPresent(sessionRepository::delete);
     }
 
+
     public UserResponseDTO register(RegisterRequest req) {
-        try{
-            if (userRepository.existsByTel(req.getTel())) {
-                throw new ResourceAlreadyExistsException("Tel already registered");
-            }
 
-            Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
-
-            User user = User.builder()
-                    .tel(req.getTel())
-                    .name(req.getName())
-                    .password(passwordEncoder.encode(req.getPassword()))
-                    .status((byte) 1)
-                    .address(req.getAddress())
-                    .build();
-            userRepository.save(user);
-            UserRole userRole = UserRole.builder().user(user).role(role)
-                    .id(new UserRoleId(user.getId(),role.getId())).build();
-            user.setUserRoles(List.of(userRole));
-            return UserResponseDTO.fromEntity(user);
-        } catch(Exception e){
-            throw new RuntimeException(e.getMessage());
+        if (userRepository.existsByTel(req.getTel())) {
+            throw new ResourceAlreadyExistsException("Tel already registered");
         }
+
+        Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
+
+        User user = User.builder()
+                .tel(req.getTel())
+                .name(req.getName())
+                .password(passwordEncoder.encode(req.getPassword()))
+                .status((byte) 1)
+                .address(req.getAddress())
+                .build();
+
+        UserRole userRole = UserRole.builder().user(user).role(role)
+                .id(new UserRoleId(null,role.getId())).build();
+
+        user.setUserRoles(List.of(userRole));
+        userRepository.save(user);
+        return UserResponseDTO.fromEntity(user);
 
     }
 

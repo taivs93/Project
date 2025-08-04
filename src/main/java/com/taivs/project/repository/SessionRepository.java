@@ -1,6 +1,7 @@
 package com.taivs.project.repository;
 
 import com.taivs.project.entity.Session;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +21,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     Optional<Session> findSessionById(@Param("sessionId") String sessionId);
 
     @Modifying
+    @Transactional
     @Query("""
     DELETE FROM Session s WHERE s.user.id = :userId
     """)

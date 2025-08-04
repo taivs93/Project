@@ -8,6 +8,7 @@ import com.taivs.project.dto.response.LoginResponse;
 import com.taivs.project.dto.response.RefreshTokenResponse;
 import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public interface AuthService {
 
     RefreshTokenResponse refresh(RefreshRequest refreshRequest);
 
-    void logout();
+    void logout(HttpServletRequest request);
 
     UserResponseDTO register(RegisterRequest req);
 

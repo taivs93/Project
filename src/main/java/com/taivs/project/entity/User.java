@@ -14,7 +14,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"products", "packages", "reports","customers"})
 @DynamicInsert
 @DynamicUpdate
 public class User extends BaseEntity {
@@ -30,31 +29,36 @@ public class User extends BaseEntity {
     @Column(name = "password", nullable = false, length = 250)
     private String password;
 
-    @Column(name = "name", nullable = false, unique = false, length = 250)
+    @Column(name = "name", nullable = false, length = 250)
     private String name;
 
-    @Column(name = "address",nullable = false,length = 400)
+    @Column(name = "address", nullable = false, length = 400)
     private String address;
 
     @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1 COMMENT 'status'")
     private byte status;
 
-    @OneToMany(mappedBy = "user",orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ToString.Exclude
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Customer> customers;
 
-    @OneToMany(mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ToString.Exclude
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Product> products;
 
-    @OneToMany(mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ToString.Exclude
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Package> packages;
 
-    @OneToMany(mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ToString.Exclude
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Report> reports;
 
-    @OneToMany(mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ToString.Exclude
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Session> sessions;
 
-    @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true,fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
     private List<UserRole> userRoles;
 
 }
