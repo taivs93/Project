@@ -44,26 +44,23 @@ public class JWTUtil {
     }
 
     private String generateToken(String userId, String sessionId, String type, long expirationMs) {
-        try {
-            System.out.println("Go to generateToken method()");
-            Date now = new Date();
-            System.out.println("create expiryDate");
-            Date expiryDate = new Date(now.getTime() + expirationMs);
-            System.out.println("start build");
-            String jwt = Jwts.builder()
-                    .setSubject(userId)
-                    .setIssuedAt(now)
-                    .setExpiration(expiryDate)
-                    .claim("sid", sessionId)
-                    .claim("type", type)
-                    .signWith(key, SignatureAlgorithm.HS256)
-                    .compact();
-            System.out.println(jwt);
-            return jwt;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+
+        System.out.println("Go to generateToken method()");
+        Date now = new Date();
+        System.out.println("create expiryDate");
+        Date expiryDate = new Date(now.getTime() + expirationMs);
+        System.out.println("start build");
+        String jwt = Jwts.builder()
+                .setSubject(userId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("sid", sessionId)
+                .claim("type", type)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+        System.out.println(jwt);
+        return jwt;
+
     }
 
     public boolean isTokenValid(String token) {

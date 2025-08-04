@@ -1,6 +1,7 @@
 package com.taivs.project.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -13,8 +14,9 @@ import java.util.List;
 @Getter
 public class PackageDTO {
 
+    @Valid
     @NotEmpty(message = "Package items are required")
-    @JsonProperty("package_items")//Valid
+    @JsonProperty("package_items")
     private List<PackageProductDTO> packageItems;
 
     @NotEmpty(message = "Address is required")

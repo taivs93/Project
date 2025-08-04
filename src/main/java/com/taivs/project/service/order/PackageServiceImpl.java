@@ -84,6 +84,7 @@ public class PackageServiceImpl implements PackageService {
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
+
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
@@ -112,10 +113,12 @@ public class PackageServiceImpl implements PackageService {
                 .user(user)
                 .isDraft((byte) 1)
                 .build();
+
         Map<Long, Integer> groupedItems = new HashMap<>();
         for (PackageProductDTO item : dto.getPackageItems()) {
             groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
         }
+
         List<PackageProduct> items = new ArrayList<>();
         for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
             Long productId = entry.getKey();

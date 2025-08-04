@@ -60,7 +60,6 @@ public class Package extends BaseEntity{
     @JoinColumn(name = "customer_id")//
     private Customer customer;
 
-    @OneToMany(mappedBy = "aPackage", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY,mappedBy = "aPackage", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<PackageProduct> packageItems = new ArrayList<>();//
-
 }

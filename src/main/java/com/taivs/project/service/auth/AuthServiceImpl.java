@@ -30,7 +30,6 @@ import java.util.List;
 
 
 @Service
-
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
@@ -132,7 +131,7 @@ public class AuthServiceImpl implements AuthService {
                 .ifPresent(sessionRepository::delete);
     }
 
-
+    @Transactional
     public UserResponseDTO register(RegisterRequest req) {
 
         if (userRepository.existsByTel(req.getTel())) {
@@ -158,6 +157,7 @@ public class AuthServiceImpl implements AuthService {
 
     }
 
+    @Transactional
     public void changePassword(PasswordChangeRequest req) {
         User user = getCurrentUser();
 
