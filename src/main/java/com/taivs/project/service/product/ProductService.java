@@ -1,6 +1,7 @@
 package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
+import com.taivs.project.dto.response.ProductFullResponse;
 import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.entity.Product;
@@ -12,15 +13,15 @@ import java.util.List;
 
 public interface ProductService {
 
-    Product createProduct(ProductDTO dto);
+    ProductFullResponse createProduct(ProductDTO dto);
 
-    Page<ProductResponseDTO> searchProducts(String name, String barcode, int page, int size, String sortField, String sortDirection);
+    Page<ProductFullResponse> searchProducts(String name, String barcode, int page, int size, String sortField, String sortDirection);
 
     List<TopRevenueProductResponse> top10RevenueProducts();
 
-    List<ProductResponseDTO> top10StockProducts();
+    List<ProductFullResponse> top10StockProducts();
 
-    Product updateProduct(Long id, ProductDTO dto);
+    ProductFullResponse updateProduct(Long id, ProductDTO dto);
 
     void deleteProduct(Long id);
 
@@ -30,5 +31,5 @@ public interface ProductService {
 
     void deleteAllProductImages(Long productId);
 
-    ProductResponseDTO getProductById(Long id);
+    ProductFullResponse getProductById(Long id);
 }

@@ -1,6 +1,7 @@
 package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
+import com.taivs.project.dto.response.ProductFullResponse;
 import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.entity.Product;
@@ -60,7 +61,7 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    public Product createProduct(ProductDTO dto) {
+    public ProductFullResponse createProduct(ProductDTO dto) {
         User user = authService.getCurrentUser();
 
         if (productRepository.existsByBarcodeAndUserId(dto.getBarcode(), user.getId())) {
@@ -84,10 +85,27 @@ public class ProductServiceImpl implements ProductService {
                 .status((byte) 1)
                 .build();
 
-        return productRepository.save(product);
+        productRepository.save(product);
+
+        ProductFullResponse productResponseDTO = ProductFullResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .barcode(product.getBarcode())
+                .weight(product.getWeight())
+                .width(product.getWidth())
+                .height(product.getHeight())
+                .length(product.getLength())
+                .stock(product.getStock())
+                .price(product.getPrice())
+                .build();
+        if(product.getProductImages() != null){
+            productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
+        }
+
+        return productResponseDTO;
     }
 
-    public Page<ProductResponseDTO> searchProducts(String name, String barcode,
+    public Page<ProductFullResponse> searchProducts(String name, String barcode,
                                                    int page, int size,
                                                    String sortField, String sortDirection) {
         size = Math.min(size, 10);
@@ -110,13 +128,12 @@ public class ProductServiceImpl implements ProductService {
                         .build())
                 .toList();
     }
-    public List<ProductResponseDTO> top10StockProducts(){
-
+    public List<ProductFullResponse> top10StockProducts(){
         return productRepository.findTop10StockProducts(authService.getCurrentUser().getId()).stream().map(this::toDTO).toList();
     }
 
-    private ProductResponseDTO toDTO(Product product) {
-        return ProductResponseDTO.builder()
+    private ProductFullResponse toDTO(Product product) {
+        return ProductFullResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .barcode(product.getBarcode())
@@ -132,7 +149,7 @@ public class ProductServiceImpl implements ProductService {
                 .build();
     }
 
-    public Product updateProduct(Long id, ProductDTO dto) {
+    public ProductFullResponse updateProduct(Long id, ProductDTO dto) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
@@ -154,7 +171,22 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(dto.getStock());
         product.setPrice(dto.getPrice());
 
-        return productRepository.save(product);
+        productRepository.save(product);
+
+        ProductFullResponse productResponseDTO = ProductFullResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .barcode(product.getBarcode())
+                .weight(product.getWeight())
+                .width(product.getWidth())
+                .height(product.getHeight())
+                .stock(product.getStock())
+                .price(product.getPrice()).build();
+        if(product.getProductImages() != null){
+            productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
+        }
+
+        return productResponseDTO;
     }
 
     public void deleteProduct(Long id) {
@@ -225,7 +257,7 @@ public class ProductServiceImpl implements ProductService {
         });
     }
 
-    public ProductResponseDTO getProductById(Long id){
+    public ProductFullResponse getProductById(Long id){
         Product product = productRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Product not found"));
         User user = authService.getCurrentUser();
         if (!user.equals(product.getUser())) throw new UnauthorizedAccessException("You are unauthorized to get this Product");

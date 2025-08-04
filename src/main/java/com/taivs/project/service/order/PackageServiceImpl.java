@@ -21,6 +21,7 @@ import com.taivs.project.service.order.caching.PackageRedisService;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +42,33 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private RoleRepository roleRepository;
     @Autowired private AuthService authService;
     @Autowired private PackageRedisService packageRedisService;
+
+    private List<PackageProduct> itemizePackage(PackageDTO packageDTO, Package pack) {
+        Map<Long, Integer> groupedItems = new HashMap<>();
+        for (PackageProductDTO item : packageDTO.getPackageItems()) {
+            groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+        }
+        Set<Long> productIds = groupedItems.keySet();
+        List<Product> products = productRepository.findAllByIdInAndUser(productIds,authService.getCurrentUser());
+
+        if (productIds.size() != products.size()) throw new UnauthorizedAccessException("Some products not found or unauthorized");
+
+        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+        List<PackageProduct> items = new ArrayList<>();
+        for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
+            Long productId = entry.getKey();
+            Integer quantity = entry.getValue();
+
+            Product product = productMap.get(productId);
+            items.add(PackageProduct.builder()
+                    .aPackage(pack)
+                    .product(product)
+                    .quantity(quantity)
+                    .build());
+        }
+        return items;
+    }
+
 
     public Double getExtraFee(List<PackageProductDTO> items) {
         double weight = 0;
@@ -88,7 +116,7 @@ public class PackageServiceImpl implements PackageService {
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
-                .orElse(null);//
+                .orElse(null);
 
         if (customer == null) {
             customer = Customer.builder()
@@ -98,9 +126,11 @@ public class PackageServiceImpl implements PackageService {
                     .build();
         } else {
             customer.setName(dto.getCustomerName());
+            customer.setAddress(dto.getAddress());
         }
 
-        customer = customerRepository.save(customer);
+        customerRepository.save(customer);
+
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
@@ -109,40 +139,21 @@ public class PackageServiceImpl implements PackageService {
                 .extraFee(getExtraFee(dto.getPackageItems()))
                 .totalFee(getTotalFee(dto))
                 .shipPayer(dto.getShipPayer())
-                .customer(customer)
+                .customerAddress(dto.getAddress())
+                .customerTel(dto.getCustomerTel())
+                .customerName(dto.getCustomerName())
                 .user(user)
                 .isDraft((byte) 1)
                 .build();
 
-        Map<Long, Integer> groupedItems = new HashMap<>();
-        for (PackageProductDTO item : dto.getPackageItems()) {
-            groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
-        }
+        List<PackageProduct> items = itemizePackage(dto, newPackage);
 
-        List<PackageProduct> items = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
-            Long productId = entry.getKey();
-            int quantity = entry.getValue();
-
-            Product p = productRepository.findById(productId)
-                    .orElseThrow(() -> new DataNotFoundException("Product not found: " + productId));//?
-
-            if (!p.getUser().equals(user)) throw new UnauthorizedAccessException("Unauthorized product access");
-
-            items.add(PackageProduct.builder()
-                    .aPackage(newPackage)
-                    .product(p)
-                    .quantity(quantity)
-                    .build());
-        }
-
-        packageProductRepository.saveAll(items);
         newPackage.setPackageItems(items);
         packageRepository.save(newPackage);
-
         return toResponse(newPackage,false);
     }
 
+    @Transactional
     public PackageResponseDTO updatePackageStatus(Long id, int newStatus) {
         Package pack = packageRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Package not found"));
@@ -208,27 +219,13 @@ public class PackageServiceImpl implements PackageService {
     }
 
     private PackageResponseDTO toResponse(Package pack, boolean includeUserId) {
-        CustomerLiteDTO customerDTO = CustomerLiteDTO.builder()
-                .id(pack.getCustomer().getId())
-                .name(pack.getCustomer().getName())
-                .tel(pack.getCustomer().getTel())
-                .build();
 
         List<PackageProductResponseDTO> items = pack.getPackageItems().stream()
                 .map(item -> PackageProductResponseDTO.builder()
-                        .id(item.getId())
                         .quantity(item.getQuantity())
                         .productResponseDTO(ProductResponseDTO.builder()
                                 .id(item.getProduct().getId())
                                 .name(item.getProduct().getName())
-                                .barcode(item.getProduct().getBarcode())
-                                .price(item.getProduct().getPrice())
-                                .weight(item.getProduct().getWeight())
-                                .width(item.getProduct().getWidth())
-                                .height(item.getProduct().getHeight())
-                                .length(item.getProduct().getLength())
-                                .stock(item.getProduct().getStock())
-                                .imageUrls(item.getProduct().getProductImages().stream().map(ProductImage::getImageUrl).toList())
                                 .build())
                         .build())
                 .toList();
@@ -236,7 +233,8 @@ public class PackageServiceImpl implements PackageService {
         PackageResponseDTO.PackageResponseDTOBuilder builder = PackageResponseDTO.builder()
                 .id(pack.getId())
                 .address(pack.getAddress())
-                .customer(customerDTO)
+                .customerName(pack.getCustomerName())
+                .customerTel(pack.getCustomerTel())
                 .packageItems(items)
                 .value(pack.getValue())
                 .extraFee(pack.getExtraFee())
@@ -283,6 +281,7 @@ public class PackageServiceImpl implements PackageService {
 
         return toResponse(packageRepository.save(draft),false);
     }
+
     @Transactional
     public PackageResponseDTO updateDraftPackage(Long id, PackageDTO dto) {
         Package pack = packageRepository.findById(id)
@@ -304,6 +303,8 @@ public class PackageServiceImpl implements PackageService {
                 .orElse(Customer.builder().tel(dto.getCustomerTel()).user(user).build());
 
         customer.setName(dto.getCustomerName());
+        customer.setTel(dto.getCustomerTel());
+        customer.setAddress(dto.getAddress());
         customerRepository.save(customer);
 
         pack.setAddress(dto.getAddress());
@@ -313,30 +314,16 @@ public class PackageServiceImpl implements PackageService {
         pack.setExtraFee(getExtraFee(dto.getPackageItems()));
         pack.setTotalFee(getTotalFee(dto));
         pack.setShipPayer(dto.getShipPayer());
-        pack.setCustomer(customer);
+        pack.setCustomerTel(dto.getCustomerTel());
+        pack.setCustomerName(dto.getCustomerName());
+        pack.setCustomerTel(dto.getCustomerTel());
 
         packageProductRepository.deleteAll(pack.getPackageItems());
 
-        List<PackageProduct> newItems = dto.getPackageItems().stream()
-                .map(item -> {
-                    Product product = productRepository.findById(item.getProductId())
-                            .orElseThrow(() -> new DataNotFoundException("Product not found: " + item.getProductId()));
-                    if (!Objects.equals(user.getId(), product.getUser().getId())) {
-                        throw new UnauthorizedAccessException("Unauthorized access to product " + product.getId());
-                    }
+        List<PackageProduct> newItems = itemizePackage(dto,pack);
 
-                    return PackageProduct.builder()
-                            .aPackage(pack)
-                            .product(product)
-                            .quantity(item.getQuantity())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        packageProductRepository.saveAll(newItems);
         pack.getPackageItems().clear();
         pack.getPackageItems().addAll(newItems);
-
         packageRepository.save(pack);
         return toResponse(pack,false);
     }
@@ -377,6 +364,7 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
+    @Transactional
     public void deleteDraftPackage(Long id) {
         Package pack = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
         if(pack.getIsDraft() == 0) throw new InvalidDraftPackageException("Only draft package can be deleted!");

@@ -7,13 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 
 public interface PackageRepository extends JpaRepository<Package, Long>{
 
     @Query("SELECT p FROM Package p " +
-            "WHERE (:customer_tel IS NULL OR p.customer.tel = :customerTel) " +
+            "WHERE (:customer_tel IS NULL OR p.customerTel = :customerTel) " +
             "AND (:id IS NULL OR p.id = :id)" +
             "AND p.isDraft = 1" +
             "AND p.user.id = :userId")
@@ -54,8 +55,12 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
     @Query("""
             SELECT p FROM Package p
             WHERE (:user_id IS NULL OR p.user.id = :userId)
-            AND (:customer_tel IS NULL OR p.customer.tel LIKE %:customerTel%)
+            AND (:customer_tel IS NULL OR p.customerTel LIKE %:customerTel%)
             AND (:id IS NULL OR p.id = :id)
             """)
     Page<Package> getPackages(@Param("userId") Long userId, @Param("customerTel") String customerTel, @Param("id") Long id, Pageable pageable);
+
+    Long countPackagesByCustomerTelAndUserId(@Param("customerTel") String customerTel, @Param("userId") Long userId);
+
+    Integer countPackagesByCustomerTel(@Param("customerTel") String customerTel);
 }

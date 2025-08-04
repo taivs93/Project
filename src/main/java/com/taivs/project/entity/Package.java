@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Setter
-@ToString(exclude = {"user", "customer", "packageItems"})
+@ToString(exclude = {"user", "packageItems"})
 @Builder
 @DynamicInsert
 @DynamicUpdate
@@ -25,6 +25,7 @@ public class Package extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "address", nullable = false)
     private String address;
 
     @Column(name = "ship_money", nullable = false)
@@ -56,10 +57,16 @@ public class Package extends BaseEntity{
     @JoinColumn(name = "created_by")
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id")//
-    private Customer customer;
+    @Column(name = "customer_tel",nullable = false)
+    private String customerTel;
+
+    @Column(name = "customer_name",nullable = false)
+    private String customerName;
+
+    @Column(name = "customer_address",nullable = false)
+    private String customerAddress;
 
     @OneToMany(fetch = FetchType.LAZY,mappedBy = "aPackage", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<PackageProduct> packageItems = new ArrayList<>();//
+    @Builder.Default
+    private List<PackageProduct> packageItems = new ArrayList<>();
 }

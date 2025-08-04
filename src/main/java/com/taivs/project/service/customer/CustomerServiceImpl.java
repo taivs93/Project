@@ -13,6 +13,7 @@ import com.taivs.project.exception.DataNotFoundException;
 import com.taivs.project.exception.ResourceAlreadyExistsException;
 import com.taivs.project.exception.UnauthorizedAccessException;
 import com.taivs.project.repository.CustomerRepository;
+import com.taivs.project.repository.PackageRepository;
 import com.taivs.project.repository.ReportRepository;
 import com.taivs.project.repository.UserRepository;
 import com.taivs.project.service.auth.AuthService;
@@ -32,13 +33,13 @@ public class CustomerServiceImpl implements CustomerService{
     private CustomerRepository customerRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private AuthService authService;
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private PackageRepository packageRepository;
 
     @Override
     public OwnCustomerResponse getCustomerDetails(Long id){
@@ -54,7 +55,7 @@ public class CustomerServiceImpl implements CustomerService{
                 .map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).build())
                 .toList();
 
-        Long totalPackagesWithUser = customer.getPackages().stream().filter(aPackage -> aPackage.getUser().getId().equals(authService.getCurrentUser().getId())).count();
+        long totalPackagesWithUser = Optional.ofNullable(packageRepository.countPackagesByCustomerTelAndUserId(customer.getTel(), customer.getUser().getId())).orElse(0L) ;
 
         return OwnCustomerResponse.builder().id(customer.getId())
                 .tel(customer.getTel())
@@ -66,12 +67,11 @@ public class CustomerServiceImpl implements CustomerService{
 
     @Override
     public CustomerResponseDTO getCustomerDetailsByTel(String tel){
-        User user = authService.getCurrentUser();
+
         List<Customer> customers = customerRepository.findByTel(tel);
-        int totalPackages = 0;
-        for (Customer customer : customers){
-            totalPackages += customer.getPackages().size();
-        }
+
+        int totalPackages = Optional.ofNullable(packageRepository.countPackagesByCustomerTel(tel)).orElse(0);
+
         Customer customer = customers.get(0);
 
         List<ReportResponseDTO> reportResponseDTOS = customer.getReports().stream().map(report -> ReportResponseDTO.builder().id(report.getId()).description(report.getDescription()).build()).toList();

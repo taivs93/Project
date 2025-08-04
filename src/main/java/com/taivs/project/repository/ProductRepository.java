@@ -2,12 +2,14 @@ package com.taivs.project.repository;
 
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.TopRevenueProduct;
+import com.taivs.project.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,4 +62,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     """, nativeQuery = true)
     List<Product> findTop10StockProducts(@Param("userId") Long userId);
 
+    List<Product> findAllByIdInAndUser(Collection<Long> ids, User user);
 }

@@ -34,8 +34,7 @@ public class DashboardController {
     @GetMapping("/user/top-stock-products")
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> getTopStockProducts(){
-        List<ProductResponseDTO> productResponseDTOS = productService.top10StockProducts();
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(productResponseDTOS).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get top stock products successfully").data(productService.top10StockProducts()).build());
     }
 
     @GetMapping("/user/get-revenue-by-time")

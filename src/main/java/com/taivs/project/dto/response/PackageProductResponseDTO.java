@@ -7,8 +7,6 @@ import lombok.Getter;
 @Getter
 public class PackageProductResponseDTO {
 
-    private Long id;
-
     ProductResponseDTO productResponseDTO;
 
     private int quantity;

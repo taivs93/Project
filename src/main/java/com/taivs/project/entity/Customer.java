@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"packages", "reports","user"})
+@ToString(exclude = {"reports","user"})
 @DynamicInsert
 @DynamicUpdate
 public class Customer extends BaseEntity {
@@ -31,15 +31,15 @@ public class Customer extends BaseEntity {
     @Column(name = "tel", nullable = false, length = 10)
     private String tel;
 
+    @Column(name = "address",nullable = false,length = 100)
+    private String address;
+
     @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
     private Integer deleteStatus;
 
     @Column(name = "type",nullable = false)
     @Enumerated(EnumType.STRING)
     CustomerType type;
-
-    @OneToMany(mappedBy = "customer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<Package> packages;
 
     @OneToMany(mappedBy = "customer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<Report> reports;

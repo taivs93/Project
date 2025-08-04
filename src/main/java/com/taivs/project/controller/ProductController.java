@@ -1,11 +1,8 @@
 package com.taivs.project.controller;
 
+import com.taivs.project.dto.response.*;
 import jakarta.validation.Valid;
 import com.taivs.project.dto.request.ProductDTO;
-import com.taivs.project.dto.response.PagedResponse;
-import com.taivs.project.dto.response.ProductImageResponseDTO;
-import com.taivs.project.dto.response.ProductResponseDTO;
-import com.taivs.project.dto.response.ResponseDTO;
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.ProductImage;
 import com.taivs.project.service.product.ProductService;
@@ -27,29 +24,13 @@ public class ProductController {
     @PostMapping("/insert")
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> insertProduct(@Valid @RequestBody ProductDTO productDTO){
-        Product product = productService.createProduct(productDTO);
-        ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .barcode(product.getBarcode())
-                .weight(product.getWeight())
-                .width(product.getWidth())
-                .height(product.getHeight())
-                .length(product.getLength())
-                .stock(product.getStock())
-                .price(product.getPrice())
-                .build();
-        if(product.getProductImages() != null){
-            productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
-        }
-        return ResponseEntity.ok(ResponseDTO.builder().status(201).message("Product created successfully").data(productResponseDTO).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(201).message("Product created successfully").data(productService.createProduct(productDTO)).build());
     }
 
     @PreAuthorize("hasRole('SHOP')")
     @GetMapping("/get-by-id/{id}")
     public ResponseEntity<ResponseDTO> getProductById(@PathVariable("id") Long id){
-        ProductResponseDTO productResponseDTO = productService.getProductById(id);
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get product successfully!").data(productResponseDTO).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get product successfully!").data(productService.getProductById(id)).build());
     }
 
     @PreAuthorize("hasRole('SHOP')")
@@ -62,9 +43,9 @@ public class ProductController {
             @RequestParam(defaultValue = "id") String sortField,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
 
-        Page<ProductResponseDTO> products = productService.searchProducts(name, barcode, page, size, sortField, sortDirection);
+        Page<ProductFullResponse> products = productService.searchProducts(name, barcode, page, size, sortField, sortDirection);
 
-        PagedResponse<ProductResponseDTO> pagedResponse = new PagedResponse<>(
+        PagedResponse<ProductFullResponse> pagedResponse = new PagedResponse<>(
                 products.getContent(),
                 products.getNumber(),
                 products.getSize(),
@@ -84,20 +65,7 @@ public class ProductController {
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductDTO productDTO){
-        Product product = productService.updateProduct(productId,productDTO);
-        ProductResponseDTO productResponseDTO = ProductResponseDTO.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .barcode(product.getBarcode())
-                .weight(product.getWeight())
-                .width(product.getWidth())
-                .height(product.getHeight())
-                .stock(product.getStock())
-                .price(product.getPrice()).build();
-        if(product.getProductImages() != null){
-            productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
-        }
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Product updated successfully").data(productResponseDTO).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Product updated successfully").data(productService.updateProduct(productId,productDTO )).build());
     }
 
     @PatchMapping("/delete/{id}")

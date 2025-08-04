@@ -16,7 +16,11 @@ public class PackageResponseDTO {
 
     private Long id;
 
-    private CustomerLiteDTO customer;
+    @JsonProperty("customer_name")
+    private String customerName;
+
+    @JsonProperty("customer_tel")
+    private String customerTel;
 
     private String address;
 
