@@ -38,11 +38,9 @@ services:
       - "8181:8181"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_TIMEOUT: 60000
-
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/project_db
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}

@@ -146,9 +146,8 @@ public class AuthServiceImpl implements AuthService {
             UserRole userRole = UserRole.builder().user(user).role(role)
                     .id(new UserRoleId(user.getId(),role.getId())).build();
             user.setUserRoles(List.of(userRole));
-            userRepository.save(user);
             return UserResponseDTO.fromEntity(user);
-        } catch(RuntimeException e){
+        } catch(Exception e){
             throw new RuntimeException(e.getMessage());
         }
 
