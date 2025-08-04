@@ -128,25 +128,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
     public UserResponseDTO register(RegisterRequest req) {
-        if (userRepository.existsByTel(req.getTel())) {
-            throw new ResourceAlreadyExistsException("Tel already registered");
+        try{
+            if (userRepository.existsByTel(req.getTel())) {
+                throw new ResourceAlreadyExistsException("Tel already registered");
+            }
+
+            Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
+
+            User user = User.builder()
+                    .tel(req.getTel())
+                    .name(req.getName())
+                    .password(passwordEncoder.encode(req.getPassword()))
+                    .status((byte) 1)
+                    .address(req.getAddress())
+                    .build();
+            userRepository.save(user);
+            UserRole userRole = UserRole.builder().user(user).role(role)
+                    .id(new UserRoleId(user.getId(),role.getId())).build();
+            user.setUserRoles(List.of(userRole));
+            userRepository.save(user);
+            return UserResponseDTO.fromEntity(user);
+        } catch(RuntimeException e){
+            throw new RuntimeException(e.getMessage());
         }
-        Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
-        User user = User.builder()
-                .tel(req.getTel())
-                .name(req.getName())
-                .password(passwordEncoder.encode(req.getPassword()))
-                .status((byte) 1)
-                .address(req.getAddress())
-                .build();
-        userRepository.save(user);
-        UserRole userRole = new UserRole();
-        userRole.setUser(user);
-        userRole.setRole(role);
-        userRole.setId(new UserRoleId(user.getId(), role.getId()));
-        user.setUserRoles(List.of(userRole));
-        userRepository.save(user);
-        return UserResponseDTO.fromEntity(user);
+
     }
 
     public void changePassword(PasswordChangeRequest req) {
