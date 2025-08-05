@@ -60,13 +60,22 @@ public class JWTFilter extends OncePerRequestFilter {
             System.out.println(rawJwt);
             System.out.println(sessionId);
 
-            if (!authCachingService.isSessionExist(sessionId))  throw new InvalidSessionException("Invalid Session Id");
+            Long userId;
 
+            if (authCachingService.isSessionExist(sessionId)) {
+                userId = authCachingService.getUserIdFromSession(sessionId);
+            } else {
+                userId = Long.parseLong(tokenService.extractUserId(rawJwt)) ;
+            }
+
+            Session session = sessionRepository.findSessionById(sessionId).get();
+
+            if (!session.isActive()) throw new InvalidSessionException("Invalid session id");
             System.out.println("Can find sesion");
             if(tokenService.isTokenValid(rawJwt)
                     && "ACCESS".equals(tokenService.extractTokenType(rawJwt))
                     && tokenService.isJwtStructureValid(rawJwt)){
-                User user = userRepository.findById(Long.parseLong(tokenService.extractUserId(rawJwt)))
+                User user = userRepository.findById(userId)
                         .orElseThrow(() -> new DataNotFoundException("User not found"));
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(user.getTel());
