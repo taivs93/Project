@@ -7,6 +7,7 @@ import com.taivs.project.exception.InvalidSessionException;
 import com.taivs.project.repository.SessionRepository;
 import com.taivs.project.repository.UserRepository;
 import com.taivs.project.security.encryption.TokenEncryptor;
+import com.taivs.project.service.auth.caching.AuthCachingService;
 import com.taivs.project.service.token.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,6 +40,9 @@ public class JWTFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AuthCachingService authCachingService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -55,9 +59,9 @@ public class JWTFilter extends OncePerRequestFilter {
             String sessionId = tokenService.extractSessionId(rawJwt);
             System.out.println(rawJwt);
             System.out.println(sessionId);
-            Session session = sessionRepository.findSessionById(sessionId)
-                    .orElseThrow(() -> new DataNotFoundException("Session not found"));
-            if (!session.isActive()) throw new InvalidSessionException("Session is not active");
+
+            if (!authCachingService.isSessionExist(sessionId))  throw new InvalidSessionException("Invalid Session Id");
+
             System.out.println("Can find sesion");
             if(tokenService.isTokenValid(rawJwt)
                     && "ACCESS".equals(tokenService.extractTokenType(rawJwt))

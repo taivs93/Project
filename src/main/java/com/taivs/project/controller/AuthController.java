@@ -49,6 +49,7 @@ public class AuthController {
     }
 
     @PatchMapping("/change-password")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> changePassword(@Valid @RequestBody PasswordChangeRequest req) {
         authService.changePassword(req);
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Change password successfully").build());
@@ -57,15 +58,6 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ResponseDTO> registerUser(@Valid @RequestBody RegisterRequest req) {
-        if (!req.getPassword().equals(req.getRetypePassword())) {
-            return ResponseEntity.badRequest().body(
-                    ResponseDTO.builder()
-                            .status(400)
-                            .message("Passwords do not match")
-                            .build()
-            );
-        }
-
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ResponseDTO.builder()
                         .status(201)

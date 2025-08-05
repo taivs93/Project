@@ -77,16 +77,8 @@ public class PackageController {
                                                       @RequestParam(defaultValue = "20") int size,
                                                       @RequestParam(defaultValue = "id") String sortField,
                                                       @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packagePage = packageService.searchPackages(customerTel, id, page, size, sortField, sortDirection);
 
-        PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
-                packagePage.getContent(),
-                packagePage.getNumber(),
-                packagePage.getSize(),
-                packagePage.getTotalElements(),
-                packagePage.getTotalPages(),
-                packagePage.isLast()
-        );
+        PagedResponse<PackageResponseDTO> pagedResponse = packageService.searchPackages(customerTel, id, page, size, sortField, sortDirection);
 
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)
@@ -103,16 +95,8 @@ public class PackageController {
                                                            @RequestParam(defaultValue = "20") int size,
                                                            @RequestParam(defaultValue = "id") String sortField,
                                                            @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packagePage = packageService.searchDraftPackages(customerTel, id, page, size, sortField, sortDirection);
 
-        PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
-                packagePage.getContent(),
-                packagePage.getNumber(),
-                packagePage.getSize(),
-                packagePage.getTotalElements(),
-                packagePage.getTotalPages(),
-                packagePage.isLast()
-        );
+        PagedResponse<PackageResponseDTO> pagedResponse = packageService.searchDraftPackages(customerTel, id, page, size, sortField, sortDirection);
 
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)
@@ -132,7 +116,7 @@ public class PackageController {
     @PreAuthorize("hasRole('SHOP') or hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO> getPackageById(@PathVariable("id") Long id){
         PackageResponseDTO packageResponseDTO = packageService.getPackageById(id);
-        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get package successfully!").data(packageService.findPackageById(id)).build());
+        return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get package successfully!").data(packageResponseDTO).build());
     }
 
     @GetMapping("/get-packages")
@@ -144,15 +128,7 @@ public class PackageController {
                                                    @RequestParam(defaultValue = "10") int size,
                                                    @RequestParam(defaultValue = "id") String sortField,
                                                    @RequestParam(defaultValue = "DESC") String sortDirection){
-        Page<PackageResponseDTO> packageResponseDTOPage = packageService.getPackages(userId,customerTel,id,page,size,sortField,sortDirection);
-        PagedResponse<PackageResponseDTO> pagedResponse = new PagedResponse<>(
-                packageResponseDTOPage.getContent(),
-                packageResponseDTOPage.getNumber(),
-                packageResponseDTOPage.getSize(),
-                packageResponseDTOPage.getTotalElements(),
-                packageResponseDTOPage.getTotalPages(),
-                packageResponseDTOPage.isLast()
-        );
+        PagedResponse<PackageResponseDTO> pagedResponse = packageService.getPackages(userId,customerTel,id,page,size,sortField,sortDirection);
 
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)

@@ -1,8 +1,8 @@
 package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
+import com.taivs.project.dto.response.PagedResponse;
 import com.taivs.project.dto.response.ProductFullResponse;
-import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.dto.response.TopRevenueProductResponse;
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.ProductImage;
@@ -30,9 +30,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private ProductRepository productRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private CloudinaryService cloudinaryService;
@@ -105,15 +102,23 @@ public class ProductServiceImpl implements ProductService {
         return productResponseDTO;
     }
 
-    public Page<ProductFullResponse> searchProducts(String name, String barcode,
-                                                   int page, int size,
-                                                   String sortField, String sortDirection) {
+    public PagedResponse<ProductFullResponse> searchProducts(String name, String barcode,
+                                                             int page, int size,
+                                                             String sortField, String sortDirection) {
         size = Math.min(size, 10);
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField);
         Pageable pageable = PageRequest.of(page, size, sort);
         User user = authService.getCurrentUser();
-        return productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
+        Page<ProductFullResponse> products = productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
                 .map(this::toDTO);
+        return new PagedResponse<>(
+                products.getContent(),
+                products.getNumber(),
+                products.getSize(),
+                products.getTotalElements(),
+                products.getTotalPages(),
+                products.isLast()
+        );
     }
     public List<TopRevenueProductResponse> top10RevenueProducts() {
         Long userId = authService.getCurrentUser().getId();

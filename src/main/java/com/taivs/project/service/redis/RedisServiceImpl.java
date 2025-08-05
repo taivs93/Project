@@ -2,6 +2,8 @@
 
     import jakarta.annotation.PostConstruct;
     import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.data.redis.connection.RedisConnectionFactory;
+    import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
     import org.springframework.data.redis.core.RedisTemplate;
     import org.springframework.stereotype.Service;
 
@@ -15,8 +17,15 @@
 
         @PostConstruct
         public void testRedis() {
-            System.out.println("Redis host: " + redisTemplate.getConnectionFactory().getConnection().getClientName());
+            RedisConnectionFactory factory = redisTemplate.getConnectionFactory();
+            if (factory instanceof LettuceConnectionFactory lettuceFactory) {
+                String clientName = lettuceFactory.getClientName();
+                System.out.println("Redis client name: " + clientName);
+            } else {
+                System.out.println("Unsupported RedisConnectionFactory: " + factory.getClass());
+            }
         }
+
 
         @Override
         public <T> void set(String key, T value, Duration ttl) {

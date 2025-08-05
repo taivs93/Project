@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface PackageRepository extends JpaRepository<Package, Long>{
 
     @Query("SELECT p FROM Package p " +
-            "WHERE (:customer_tel IS NULL OR p.customerTel = :customerTel) " +
+            "WHERE (:customerTel IS NULL OR p.customerTel = :customerTel) " +
             "AND (:id IS NULL OR p.id = :id)" +
             "AND p.isDraft = 1" +
             "AND p.user.id = :userId")
@@ -54,8 +54,8 @@ WHERE DATE(created_at) >= DATE_FORMAT(NOW(), '%Y-%m-01')
 
     @Query("""
             SELECT p FROM Package p
-            WHERE (:user_id IS NULL OR p.user.id = :userId)
-            AND (:customer_tel IS NULL OR p.customerTel LIKE %:customerTel%)
+            WHERE (:userId IS NULL OR p.user.id = :userId)
+            AND (:customerTel IS NULL OR p.customerTel LIKE %:customerTel%)
             AND (:id IS NULL OR p.id = :id)
             """)
     Page<Package> getPackages(@Param("userId") Long userId, @Param("customerTel") String customerTel, @Param("id") Long id, Pageable pageable);

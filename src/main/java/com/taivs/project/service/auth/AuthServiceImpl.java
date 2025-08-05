@@ -6,6 +6,7 @@ import com.taivs.project.dto.request.RefreshRequest;
 import com.taivs.project.dto.request.RegisterRequest;
 import com.taivs.project.dto.response.LoginResponse;
 import com.taivs.project.dto.response.RefreshTokenResponse;
+import com.taivs.project.dto.response.ResponseDTO;
 import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.*;
 import com.taivs.project.exception.*;
@@ -15,17 +16,22 @@ import com.taivs.project.repository.UserRepository;
 
 import com.taivs.project.security.encryption.TokenEncryptor;
 import com.taivs.project.security.jwt.JWTUtil;
+import com.taivs.project.service.auth.caching.AuthCachingService;
 import com.taivs.project.service.session.SessionService;
 import com.taivs.project.service.token.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -56,6 +62,12 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private TokenEncryptor tokenEncryptor;
 
+    @Autowired
+    private AuthCachingService authCachingService;
+
+    @Value("${jwt.session-expiration-ms}")
+    private long durationMs;
+
     @Override
     public User getCurrentUser() {
         String tel = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -75,6 +87,8 @@ public class AuthServiceImpl implements AuthService {
         sessionRepository.deleteAllByUserId(user.getId());
         System.out.println("Read session.");
         Session session = sessionService.createSession(user);
+
+        authCachingService.saveSession(session,this.durationMs);
 
         String accessToken = tokenService.generateAccessToken(user, session.getId());
         String refreshToken = tokenService.generateRefreshToken(user,session.getId());
@@ -102,6 +116,10 @@ public class AuthServiceImpl implements AuthService {
                 .extractSessionId(rawRefreshToken);
 
         User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new DataNotFoundException("User Id not found."));
+
+        Session currentSession = sessionRepository.findActiveSessionByUserId(user.getId()).orElseThrow(() -> new DataNotFoundException("Session not found"));
+
+        if (!currentSession.getId().equals(sessionId)) throw new InvalidSessionException("Invalid session id");
 
         Session session = sessionRepository.findSessionById(sessionId).get();
 
@@ -137,6 +155,8 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByTel(req.getTel())) {
             throw new ResourceAlreadyExistsException("Tel already registered");
         }
+
+        if (!req.getPassword().equals(req.getRetypePassword())) throw new InvalidPasswordException("Passwords don't match");
 
         Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
 

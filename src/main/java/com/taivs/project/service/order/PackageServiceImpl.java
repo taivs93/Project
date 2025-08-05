@@ -1,5 +1,6 @@
 package com.taivs.project.service.order;
 
+import com.taivs.project.dto.response.*;
 import com.taivs.project.entity.*;
 import com.taivs.project.entity.Package;
 import com.taivs.project.exception.*;
@@ -9,10 +10,6 @@ import org.springframework.data.domain.*;
 import com.taivs.project.dto.request.PackageDTO;
 import com.taivs.project.dto.request.PackageProductDTO;
 import com.taivs.project.dto.request.ShipPayer;
-import com.taivs.project.dto.response.CustomerLiteDTO;
-import com.taivs.project.dto.response.PackageProductResponseDTO;
-import com.taivs.project.dto.response.PackageResponseDTO;
-import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,11 +46,11 @@ public class PackageServiceImpl implements PackageService {
             groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
         }
         Set<Long> productIds = groupedItems.keySet();
-        List<Product> products = productRepository.findAllByIdInAndUser(productIds,authService.getCurrentUser());
+        List<Product> packages = productRepository.findAllByIdInAndUser(productIds,authService.getCurrentUser());
 
-        if (productIds.size() != products.size()) throw new UnauthorizedAccessException("Some products not found or unauthorized");
+        if (productIds.size() != packages.size()) throw new UnauthorizedAccessException("Some packages not found or unauthorized");
 
-        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+        Map<Long, Product> productMap = packages.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
         List<PackageProduct> items = new ArrayList<>();
         for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
             Long productId = entry.getKey();
@@ -106,7 +103,7 @@ public class PackageServiceImpl implements PackageService {
     }
     public Double getTotalFee(PackageDTO dto) {
         double base = dto.getPickMoney() + getExtraFee(dto.getPackageItems());
-        return Math.round((dto.getShipPayer() == ShipPayer.USER ? base : base + 30000) * 100.0) / 100.0;
+        return Math.round((dto.getShipPayer() == ShipPayer.SHOP ? base : base + 30000) * 100.0) / 100.0;
     }
 
     @Transactional
@@ -174,9 +171,9 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
-    public Page<PackageResponseDTO> searchPackages(String customerTel, Long id,
-                                                   int page, int size,
-                                                   String sortField, String sortDirection) {
+    public PagedResponse<PackageResponseDTO> searchPackages(String customerTel, Long id,
+                                                            int page, int size,
+                                                            String sortField, String sortDirection) {
         System.out.println("Access to service");
         if (size > 20) size = 20;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
@@ -195,7 +192,14 @@ public class PackageServiceImpl implements PackageService {
 
         System.out.println("Prepare to caching");
         Page<PackageResponseDTO> cached = packageRedisService.getCachedPackages(cacheKey, pageable);
-        if (cached != null) return cached;
+        if (cached != null) return new PagedResponse<>(
+                cached.getContent(),
+                cached.getNumber(),
+                cached.getSize(),
+                cached.getTotalElements(),
+                cached.getTotalPages(),
+                cached.isLast()
+        );
 
         Page<Package> pageResult = packageRepository.getPackages(user.getId(), customerTel, id, pageable);
         List<PackageResponseDTO> dtoList = pageResult.map(pack -> toResponse(pack,false)).getContent();
@@ -203,15 +207,31 @@ public class PackageServiceImpl implements PackageService {
         System.out.println("Caching into Redis");
         packageRedisService.cachePackages(cacheKey, dtoList, Duration.ofMinutes(10));
 
-        return new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());
+        Page<PackageResponseDTO> packages =  new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());
+        return new PagedResponse<>(
+                packages.getContent(),
+                packages.getNumber(),
+                packages.getSize(),
+                packages.getTotalElements(),
+                packages.getTotalPages(),
+                packages.isLast()
+        );
     }
 
-    public Page<PackageResponseDTO> searchDraftPackages(String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
+    public PagedResponse<PackageResponseDTO> searchDraftPackages(String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         if (size > 20) size = 20;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
         User user = authService.getCurrentUser();
-        return packageRepository.findDraftPackagesByCustomerTelOrId(user.getId(),customerTel, id, pageable)
+        Page<PackageResponseDTO> packageResponseDTOS =  packageRepository.findDraftPackagesByCustomerTelOrId(user.getId(),customerTel, id, pageable)
                 .map(pack -> toResponse(pack,false));
+        return new PagedResponse<>(
+                packageResponseDTOS.getContent(),
+                packageResponseDTOS.getNumber(),
+                packageResponseDTOS.getSize(),
+                packageResponseDTOS.getTotalElements(),
+                packageResponseDTOS.getTotalPages(),
+                packageResponseDTOS.isLast()
+        );
     }
 
     private boolean isValidTransition(int from, int to) {
@@ -357,10 +377,17 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Override
-    public Page<PackageResponseDTO> getPackages(Long userId,String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
+    public PagedResponse<PackageResponseDTO> getPackages(Long userId,String customerTel, Long id,int page, int size, String sortField, String sortDirection) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
-        return packageRepository.getPackages(userId,customerTel,id,pageable)
+        Page<PackageResponseDTO> packageResponseDTOS = packageRepository.getPackages(userId,customerTel,id,pageable)
                 .map(pack -> toResponse(pack,true));
+        return new PagedResponse<>(
+                packageResponseDTOS.getContent(),
+                packageResponseDTOS.getNumber(),
+                packageResponseDTOS.getSize(),
+                packageResponseDTOS.getTotalElements(),
+                packageResponseDTOS.getTotalPages(),
+                packageResponseDTOS.isLast());
     }
 
     @Override

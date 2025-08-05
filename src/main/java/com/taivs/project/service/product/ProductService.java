@@ -1,6 +1,7 @@
 package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
+import com.taivs.project.dto.response.PagedResponse;
 import com.taivs.project.dto.response.ProductFullResponse;
 import com.taivs.project.dto.response.ProductResponseDTO;
 import com.taivs.project.dto.response.TopRevenueProductResponse;
@@ -15,7 +16,7 @@ public interface ProductService {
 
     ProductFullResponse createProduct(ProductDTO dto);
 
-    Page<ProductFullResponse> searchProducts(String name, String barcode, int page, int size, String sortField, String sortDirection);
+    PagedResponse<ProductFullResponse> searchProducts(String name, String barcode, int page, int size, String sortField, String sortDirection);
 
     List<TopRevenueProductResponse> top10RevenueProducts();
 

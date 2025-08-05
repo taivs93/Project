@@ -66,7 +66,8 @@ public class GlobalExceptionHandler {
             InvalidDraftPackageException.class,
             InvalidStatusTransitionException.class,
             InvalidProductUpdated.class,
-            InvalidTokenType.class
+            InvalidTokenType.class,
+            InvalidRetypePassword.class
     })
     public ResponseEntity<ResponseDTO> handleBadRequest(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(

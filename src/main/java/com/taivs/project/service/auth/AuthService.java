@@ -10,9 +10,6 @@ import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.List;
-import java.util.Map;
-
 public interface AuthService {
 
     LoginResponse login(LoginRequest req);

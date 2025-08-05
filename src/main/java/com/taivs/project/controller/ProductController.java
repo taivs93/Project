@@ -43,16 +43,7 @@ public class ProductController {
             @RequestParam(defaultValue = "id") String sortField,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
 
-        Page<ProductFullResponse> products = productService.searchProducts(name, barcode, page, size, sortField, sortDirection);
-
-        PagedResponse<ProductFullResponse> pagedResponse = new PagedResponse<>(
-                products.getContent(),
-                products.getNumber(),
-                products.getSize(),
-                products.getTotalElements(),
-                products.getTotalPages(),
-                products.isLast()
-        );
+        PagedResponse<ProductFullResponse> pagedResponse = productService.searchProducts(name, barcode, page, size, sortField, sortDirection);
 
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)
