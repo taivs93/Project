@@ -226,6 +226,8 @@ public class ProductServiceImpl implements ProductService {
 
         productRepository.save(product);
 
+        Integer stock = inventoryRepository.sumQuantityByProductId(product.getId()).orElse(0);
+
         ProductFullResponse productResponseDTO = ProductFullResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -233,6 +235,7 @@ public class ProductServiceImpl implements ProductService {
                 .weight(product.getWeight())
                 .width(product.getWidth())
                 .height(product.getHeight())
+                .stock(stock)
                 .price(product.getPrice()).build();
         if(product.getProductImages() != null){
             productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());

@@ -1,6 +1,7 @@
 package com.taivs.project.service.warehouse;
 
 import com.taivs.project.dto.request.WarehouseDTO;
+import com.taivs.project.dto.response.InventoryResponse;
 import com.taivs.project.dto.response.WarehouseResponse;
 import com.taivs.project.entity.Inventory;
 import com.taivs.project.entity.InventoryTransaction;
@@ -66,9 +67,17 @@ public class WarehouseServiceImpl implements WarehouseService{
 
         warehouseRepository.save(existsWarehouse);
 
+        List<InventoryResponse> inventoryResponses = existsWarehouse.getInventories().stream().filter(inventory -> inventory.getIsDeleted() == 0).map(inventory
+                -> InventoryResponse.builder()
+                .id(inventory.getId())
+                .productId(inventory.getId())
+                .quantity(inventory.getQuantity())
+                .build()
+        ).toList();
         return WarehouseResponse.builder()
                 .name(existsWarehouse.getName())
                 .location(existsWarehouse.getLocation())
+                .inventoryDTOS(inventoryResponses)
                 .build();
     }
 
@@ -97,10 +106,19 @@ public class WarehouseServiceImpl implements WarehouseService{
         Warehouse existsWarehouse = warehouseRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Warehouse not found"));
         if (!existsWarehouse.getUser().equals(user)) throw new UnauthorizedAccessException("Unauthorize to access this warehouse");
 
+        List<InventoryResponse> inventoryResponses = existsWarehouse.getInventories().stream().filter(inventory -> inventory.getIsDeleted() == 0).map(inventory
+                -> InventoryResponse.builder()
+                .id(inventory.getId())
+                .productId(inventory.getId())
+                .quantity(inventory.getQuantity())
+                .build()
+        ).toList();
+
         return WarehouseResponse.builder()
                 .id(existsWarehouse.getId())
                 .name(existsWarehouse.getName())
                 .location(existsWarehouse.getLocation())
+                .inventoryDTOS(inventoryResponses)
                 .build();
     }
 

@@ -11,14 +11,14 @@ spring:
       org.springframework.boot.context.config: DEBUG
 
   datasource:
-    url: jdbc:mariadb://mariadb:3306/project_db
+    url: jdbc:mariadb://localhost:3306/project_db
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: org.mariadb.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     database-platform: org.hibernate.dialect.MariaDBDialect
     properties:
@@ -28,7 +28,7 @@ spring:
 
   data:
     redis:
-      host: redis
+      host: localhost
       port: 6379
       timeout: 60000
       connect-timeout: 10000

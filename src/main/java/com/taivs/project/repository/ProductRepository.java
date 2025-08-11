@@ -121,14 +121,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             AND (:warehouseId IS NULL OR w.id = :warehouseId)
         LEFT JOIN package_products pp
             ON p.id = pp.product_id
-            AND pp.is_deleted = 0
         LEFT JOIN warehouses wpp
             ON wpp.id = pp.warehouse_id
             AND (:warehouseId IS NULL OR wpp.id = :warehouseId)
         LEFT JOIN packages pk
             ON pp.package_id = pk.id
                AND pk.status = 20
-               AND pk.is_deleted = 0
                AND pk.created_by = :userId
         WHERE p.is_deleted = 0
           AND p.created_by = :userId
