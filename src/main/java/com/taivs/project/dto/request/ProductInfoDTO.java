@@ -1,16 +1,13 @@
 package com.taivs.project.dto.request;
-import jakarta.validation.Valid;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
-import java.util.List;
-
 @Getter
-public class ProductDTO {
-
+public class ProductInfoDTO {
     @NotBlank(message = "Name is required")
     @Size(max = 250, message = "Name must be at most 250 characters")
     private String name;
@@ -33,7 +30,4 @@ public class ProductDTO {
 
     @PositiveOrZero(message = "Price must be zero or positive")
     private Double price;
-
-    @Valid
-    private List<InventoryWarehouse> inventoryDTOS;
 }

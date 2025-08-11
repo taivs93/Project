@@ -29,6 +29,10 @@ public class PackageProduct {
     private Package aPackage;
 
     @ManyToOne
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
+    @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
 }

@@ -1,4 +1,4 @@
-package com.taivs.project.entity;
+package com.taivs.project.dto.response;
 
 public interface TopRevenueProduct {
     Long getId();

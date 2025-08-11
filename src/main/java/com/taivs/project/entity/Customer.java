@@ -34,8 +34,9 @@ public class Customer extends BaseEntity {
     @Column(name = "address",nullable = false,length = 100)
     private String address;
 
+    @Builder.Default
     @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
-    private Integer deleteStatus;
+    private Integer deleteStatus = 0;
 
     @Column(name = "type",nullable = false)
     @Enumerated(EnumType.STRING)

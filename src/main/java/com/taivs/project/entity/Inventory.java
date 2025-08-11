@@ -1,0 +1,41 @@
+package com.taivs.project.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "inventories")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Inventory extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "warehouse_id")
+    private Warehouse warehouse;
+
+
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 0 COMMENT 'Current stock'")
+    private Integer quantity;
+
+    @Column(
+            name = "is_deleted",
+            nullable = false,
+            columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'"
+    )
+    private byte isDeleted = 0;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User user;
+}

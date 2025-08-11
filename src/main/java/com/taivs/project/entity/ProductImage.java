@@ -1,6 +1,7 @@
 package com.taivs.project.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicInsert;
@@ -10,6 +11,7 @@ import org.hibernate.annotations.DynamicUpdate;
 @Table(name = "product_images")
 @Getter
 @Setter
+@Builder
 @DynamicInsert
 @DynamicUpdate
 public class ProductImage {
@@ -22,8 +24,9 @@ public class ProductImage {
     @Column(name = "image_url", nullable = false, length = 250, columnDefinition = "varchar(250) COMMENT 'image_url'")
     private String imageUrl;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'")
-    private int isDeleted;
+    private int isDeleted = 0;
 
     @ManyToOne
     @JoinColumn(name = "product_id")

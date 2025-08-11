@@ -1,10 +1,12 @@
 package com.taivs.project.service.order;
 
+import com.taivs.project.dto.request.InventoryDTO;
 import com.taivs.project.dto.response.*;
 import com.taivs.project.entity.*;
 import com.taivs.project.entity.Package;
 import com.taivs.project.exception.*;
 import com.taivs.project.repository.*;
+import com.taivs.project.service.inventory.InventoryService;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.*;
 import com.taivs.project.dto.request.PackageDTO;
@@ -36,35 +38,61 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private CustomerRepository customerRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PackageProductRepository packageProductRepository;
-    @Autowired private RoleRepository roleRepository;
     @Autowired private AuthService authService;
     @Autowired private PackageRedisService packageRedisService;
+    @Autowired private WarehouseRepository warehouseRepository;
+    @Autowired private InventoryRepository inventoryRepository;
+    @Autowired private InventoryService inventoryService;
 
     private List<PackageProduct> itemizePackage(PackageDTO packageDTO, Package pack) {
-        Map<Long, Integer> groupedItems = new HashMap<>();
+        User currentUser = authService.getCurrentUser();
+
+        Map<String, Integer> groupedItems = new HashMap<>();
         for (PackageProductDTO item : packageDTO.getPackageItems()) {
-            groupedItems.merge(item.getProductId(), item.getQuantity(), Integer::sum);
+            String key = item.getProductId() + "_" + item.getWarehouseId();
+            groupedItems.merge(key, item.getQuantity(), Integer::sum);
         }
-        Set<Long> productIds = groupedItems.keySet();
-        List<Product> packages = productRepository.findAllByIdInAndUser(productIds,authService.getCurrentUser());
 
-        if (productIds.size() != packages.size()) throw new UnauthorizedAccessException("Some packages not found or unauthorized");
+        Set<Long> productIds = groupedItems.keySet().stream()
+                .map(k -> Long.valueOf(k.split("_")[0]))
+                .collect(Collectors.toSet());
 
-        Map<Long, Product> productMap = packages.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+        Set<Long> warehouseIds = groupedItems.keySet().stream()
+                .map(k -> Long.valueOf(k.split("_")[1]))
+                .collect(Collectors.toSet());
+
+        List<Product> products = productRepository.findAllByIdInAndUser(productIds, currentUser);
+        if (products.size() != productIds.size()) {
+            throw new UnauthorizedAccessException("Some products not found or unauthorized");
+        }
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+
+        List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(warehouseIds.stream().toList(), currentUser.getId());
+        if (warehouses.size() != warehouseIds.size()) {
+            throw new UnauthorizedAccessException("Some warehouses not found, deleted, or unauthorized");
+        }
+        Map<Long, Warehouse> warehouseMap = warehouses.stream()
+                .collect(Collectors.toMap(Warehouse::getId, Function.identity()));
+
         List<PackageProduct> items = new ArrayList<>();
-        for (Map.Entry<Long, Integer> entry : groupedItems.entrySet()) {
-            Long productId = entry.getKey();
+        for (Map.Entry<String, Integer> entry : groupedItems.entrySet()) {
+            String[] ids = entry.getKey().split("_");
+            Long productId = Long.valueOf(ids[0]);
+            Long warehouseId = Long.valueOf(ids[1]);
             Integer quantity = entry.getValue();
 
-            Product product = productMap.get(productId);
             items.add(PackageProduct.builder()
                     .aPackage(pack)
-                    .product(product)
+                    .warehouse(warehouseMap.get(warehouseId))
+                    .product(productMap.get(productId))
                     .quantity(quantity)
                     .build());
         }
+
         return items;
     }
+
 
 
     public Double getExtraFee(List<PackageProductDTO> items) {
@@ -110,24 +138,6 @@ public class PackageServiceImpl implements PackageService {
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
 
-        Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
-                .filter(c -> c.getUser().equals(user))
-                .findFirst()
-                .orElse(null);
-
-        if (customer == null) {
-            customer = Customer.builder()
-                    .tel(dto.getCustomerTel())
-                    .name(dto.getCustomerName())
-                    .user(user)
-                    .build();
-        } else {
-            customer.setName(dto.getCustomerName());
-            customer.setAddress(dto.getAddress());
-        }
-
-        customerRepository.save(customer);
-
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
@@ -147,6 +157,25 @@ public class PackageServiceImpl implements PackageService {
 
         newPackage.setPackageItems(items);
         packageRepository.save(newPackage);
+
+        Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
+                .filter(c -> c.getUser().equals(user))
+                .findFirst()
+                .orElse(null);
+
+        if (customer == null) {
+            customer = Customer.builder()
+                    .tel(dto.getCustomerTel())
+                    .name(dto.getCustomerName())
+                    .address(dto.getAddress())
+                    .user(user)
+                    .build();
+        } else {
+            customer.setName(dto.getCustomerName());
+            customer.setAddress(dto.getAddress());
+        }
+
+        customerRepository.save(customer);
         return toResponse(newPackage,false);
     }
 
@@ -204,7 +233,6 @@ public class PackageServiceImpl implements PackageService {
         Page<Package> pageResult = packageRepository.getPackages(user.getId(), customerTel, id, pageable);
         List<PackageResponseDTO> dtoList = pageResult.map(pack -> toResponse(pack,false)).getContent();
 
-        System.out.println("Caching into Redis");
         packageRedisService.cachePackages(cacheKey, dtoList, Duration.ofMinutes(10));
 
         Page<PackageResponseDTO> packages =  new PageImpl<>(dtoList, pageable, pageResult.getTotalElements());
@@ -282,19 +310,16 @@ public class PackageServiceImpl implements PackageService {
         }
 
         for (PackageProduct item : draft.getPackageItems()) {
-            Product product = item.getProduct();
-            int quantity = item.getQuantity();
+            Inventory inventory = inventoryRepository
+                    .findByWarehouseIdAndProductId(item.getWarehouse().getId(),item.getProduct().getId()).orElseThrow(() -> new DataNotFoundException("Inventory not found"));
 
-            if (!product.getUser().equals(user)) {
-                throw new UnauthorizedAccessException("Unauthorized access to product " + product.getId());
-            }
+            InventoryDTO inventoryDTO = InventoryDTO.builder()
+                    .productId(item.getProduct().getId())
+                    .warehouseId(item.getWarehouse().getId())
+                    .quantity(item.getQuantity())
+                    .build();
 
-            if (quantity > product.getStock()) {
-                throw new NotEnoughStockException("Not enough stock for product " + product.getId());
-            }
-
-            product.setStock(product.getStock() - quantity);
-            productRepository.save(product);
+            inventoryService.exportInventory(inventoryDTO);
         }
 
         draft.setIsDraft((byte) 0);
@@ -365,15 +390,6 @@ public class PackageServiceImpl implements PackageService {
         else if (time.equalsIgnoreCase("year")) return packageRepository.getThisYearRevenue(user.getId());
         throw new IllegalArgumentException("Time is invalid");
 
-    }
-
-    @Override
-    public PackageResponseDTO findPackageById(Long id) {
-        User user = authService.getCurrentUser();
-        Package order = packageRepository.findPackageById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));
-        Role userRole = roleRepository.findByName("USER").orElseThrow(() -> new DataNotFoundException("Role not found"));
-        if(user.getUserRoles().contains(userRole)  && !Objects.equals(order.getUser().getId(), user.getId())) throw new UnauthorizedAccessException("Unauthorized");
-        return toResponse(order,false);
     }
 
     @Override

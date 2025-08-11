@@ -1,5 +1,6 @@
 package com.taivs.project.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -10,9 +11,19 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.time.Duration;
+
 @Configuration
 public class RedisConfig {
 
+    @Value("${spring.data.redis.host:redis}")
+    private String redisHost;
+
+    @Value("${spring.data.redis.port:6379}")
+    private int redisPort;
+
+    @Value("${spring.data.redis.timeout:60000}")
+    private long timeoutMs;
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
@@ -30,10 +41,12 @@ public class RedisConfig {
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration("localhost", 6379);
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(redisHost, redisPort);
 
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .clientName("my-spring-app")
+                .commandTimeout(Duration.ofMillis(timeoutMs))
+                .shutdownTimeout(Duration.ofMillis(200))
                 .build();
 
         return new LettuceConnectionFactory(redisConfig, clientConfig);

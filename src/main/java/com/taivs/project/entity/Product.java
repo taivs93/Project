@@ -17,7 +17,7 @@ import java.util.List;
 @Builder
 @DynamicInsert
 @DynamicUpdate
-@ToString(exclude = {"user", "productImages"})
+@ToString(exclude = {"user", "productImages", "inventories", "packageProducts"})
 public class Product extends BaseEntity {
 
     @Id
@@ -33,37 +33,42 @@ public class Product extends BaseEntity {
 
     @Column(name = "weight", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'weight'")
     @PositiveOrZero
-    private double weight;
+    private Double weight;
 
     @Column(name = "height", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'height'")
     @PositiveOrZero
-    private double height;
+    private Double height;
 
     @Column(name = "length", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'length'")
     @PositiveOrZero
-    private double length;
+    private Double length;
 
     @Column(name = "width", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'width'")
     @PositiveOrZero
-    private double width;
-
-    @Column(name = "stock", nullable = false, columnDefinition = "INT DEFAULT 0 COMMENT 'stock'")
-    private Integer stock;
+    private Double width;
 
     @Column(name = "price", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'price'")
     @PositiveOrZero
-    private double price;
+    private Double price = (double) 0;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'")
-    private byte isDeleted;
+    private byte isDeleted = 0;
 
+    @Builder.Default
     @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'status'")
-    private byte status;
+    private byte status = 0;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private User user;
 
     @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<ProductImage> productImages;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Inventory> inventories;
+
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
+    private List<PackageProduct> packageProducts;
 }

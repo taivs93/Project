@@ -1,10 +1,8 @@
 package com.taivs.project.service.product;
 
 import com.taivs.project.dto.request.ProductDTO;
-import com.taivs.project.dto.response.PagedResponse;
-import com.taivs.project.dto.response.ProductFullResponse;
-import com.taivs.project.dto.response.ProductResponseDTO;
-import com.taivs.project.dto.response.TopRevenueProductResponse;
+import com.taivs.project.dto.request.ProductInfoDTO;
+import com.taivs.project.dto.response.*;
 import com.taivs.project.entity.Product;
 import com.taivs.project.entity.ProductImage;
 import org.springframework.data.domain.Page;
@@ -20,9 +18,7 @@ public interface ProductService {
 
     List<TopRevenueProductResponse> top10RevenueProducts();
 
-    List<ProductFullResponse> top10StockProducts();
-
-    ProductFullResponse updateProduct(Long id, ProductDTO dto);
+    ProductFullResponse updateProduct(Long id, ProductInfoDTO dto);
 
     void deleteProduct(Long id);
 
@@ -33,4 +29,6 @@ public interface ProductService {
     void deleteAllProductImages(Long productId);
 
     ProductFullResponse getProductById(Long id);
+
+    List<TopRiskStock> topRiskStockProducts(Long warehouseId,int limit);
 }

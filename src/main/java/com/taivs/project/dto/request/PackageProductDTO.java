@@ -15,6 +15,11 @@ public class PackageProductDTO {
     @Positive
     private Long productId;
 
+    @NotNull(message = "Warehouse ID is required")
+    @JsonProperty("warehouse_id")
+    @Positive
+    private Long warehouseId;
+
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
 }

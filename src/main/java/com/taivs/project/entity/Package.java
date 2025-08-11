@@ -47,8 +47,10 @@ public class Package extends BaseEntity{
     @Column(name = "ship_payer", nullable = false)
     private ShipPayer shipPayer;
 
+    @Builder.Default
     @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
-    private int status;
+    private Integer status = 0;
+
 
     @Column(name = "is_draft",nullable = false,columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_draft'")
     private byte isDraft;

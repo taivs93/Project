@@ -1,5 +1,6 @@
 package com.taivs.project.controller;
 
+import com.taivs.project.dto.request.ProductInfoDTO;
 import com.taivs.project.dto.response.*;
 import jakarta.validation.Valid;
 import com.taivs.project.dto.request.ProductDTO;
@@ -55,7 +56,7 @@ public class ProductController {
 
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('SHOP')")
-    public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductDTO productDTO){
+    public ResponseEntity<ResponseDTO> updateProduct(@PathVariable(name = "id") Long productId,@Valid @RequestBody ProductInfoDTO productDTO){
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Product updated successfully").data(productService.updateProduct(productId,productDTO )).build());
     }
 

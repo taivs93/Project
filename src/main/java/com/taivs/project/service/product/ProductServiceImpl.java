@@ -1,19 +1,19 @@
 package com.taivs.project.service.product;
 
+import com.taivs.project.dto.request.InventoryDTO;
+import com.taivs.project.dto.request.InventoryWarehouse;
 import com.taivs.project.dto.request.ProductDTO;
-import com.taivs.project.dto.response.PagedResponse;
-import com.taivs.project.dto.response.ProductFullResponse;
-import com.taivs.project.dto.response.TopRevenueProductResponse;
-import com.taivs.project.entity.Product;
-import com.taivs.project.entity.ProductImage;
-import com.taivs.project.entity.TopRevenueProduct;
-import com.taivs.project.entity.User;
+import com.taivs.project.dto.request.ProductInfoDTO;
+import com.taivs.project.dto.response.*;
+import com.taivs.project.entity.*;
 import com.taivs.project.exception.*;
+import com.taivs.project.repository.InventoryRepository;
 import com.taivs.project.repository.ProductImageRepository;
 import com.taivs.project.repository.ProductRepository;
-import com.taivs.project.repository.UserRepository;
+import com.taivs.project.repository.WarehouseRepository;
 import com.taivs.project.service.auth.AuthService;
 import com.taivs.project.service.cloudinary.CloudinaryService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,8 +22,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -40,13 +43,60 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private WarehouseRepository warehouseRepository;
+
+    @Autowired
+    private InventoryRepository inventoryRepository;
+
+    private void insertNewInventories(List<InventoryWarehouse> inventoryWarehouses, Product product){
+
+        User user = authService.getCurrentUser();
+
+        Map<Long, Integer> mergedQuantities = inventoryWarehouses.stream()
+                .collect(Collectors.toMap(
+                        InventoryWarehouse::getWarehouseId,
+                        InventoryWarehouse::getQuantity,
+                        Integer::sum
+                ));
+
+        List<Long> warehouseIds = new ArrayList<>(mergedQuantities.keySet());
+        List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(warehouseIds, user.getId());
+
+        Map<Long, Warehouse> warehouseMap = warehouses.stream()
+                .peek(wh -> {
+                    if (!wh.getUser().equals(user)) {
+                        throw new UnauthorizedAccessException("Cannot access warehouse " + wh.getId());
+                    }
+                })
+                .collect(Collectors.toMap(Warehouse::getId, wh -> wh));
+
+        if (warehouseMap.size() != warehouseIds.size()) {
+            throw new DataNotFoundException("Some warehouses not found");
+        }
+
+        for (Map.Entry<Long, Integer> entry : mergedQuantities.entrySet()) {
+            Warehouse warehouse = warehouseMap.get(entry.getKey());
+            Integer quantity = entry.getValue();
+
+            Inventory newInventory = Inventory.builder()
+                    .warehouse(warehouse)
+                    .product(product)
+                    .user(user)
+                    .quantity(quantity)
+                    .build();
+
+            inventoryRepository.save(newInventory);
+        }
+    }
+
     private void checkProductOwnership(Product product, User user) {
         if (!Objects.equals(product.getUser().getId(), user.getId())) {
             throw new UnauthorizedAccessException("Not authorized");
         }
     }
 
-    private void validateProductUniqueness(ProductDTO dto, User user, Product existing) {
+    private void validateProductUniqueness(ProductInfoDTO dto, User user, Product existing) {
         if (!dto.getBarcode().equals(existing.getBarcode()) &&
                 productRepository.existsByBarcodeAndUserId(dto.getBarcode(), user.getId())) {
             throw new ResourceAlreadyExistsException("Barcode already exists");
@@ -58,6 +108,7 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    @Transactional
     public ProductFullResponse createProduct(ProductDTO dto) {
         User user = authService.getCurrentUser();
 
@@ -76,7 +127,6 @@ public class ProductServiceImpl implements ProductService {
                 .height(dto.getHeight())
                 .length(dto.getLength())
                 .price(dto.getPrice())
-                .stock(dto.getStock())
                 .user(user)
                 .isDeleted((byte) 0)
                 .status((byte) 1)
@@ -84,7 +134,12 @@ public class ProductServiceImpl implements ProductService {
 
         productRepository.save(product);
 
-        ProductFullResponse productResponseDTO = ProductFullResponse.builder()
+        insertNewInventories(dto.getInventoryDTOS(),product);
+
+        int totalStock = inventoryRepository.sumQuantityByProductId(product.getId())
+                .orElse(0);
+
+        ProductFullResponse.ProductFullResponseBuilder builder = ProductFullResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .barcode(product.getBarcode())
@@ -92,15 +147,21 @@ public class ProductServiceImpl implements ProductService {
                 .width(product.getWidth())
                 .height(product.getHeight())
                 .length(product.getLength())
-                .stock(product.getStock())
                 .price(product.getPrice())
-                .build();
-        if(product.getProductImages() != null){
-            productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
+                .stock(totalStock);
+
+        if (product.getProductImages() != null && !product.getProductImages().isEmpty()) {
+            builder.imageUrls(
+                    product.getProductImages()
+                            .stream()
+                            .map(ProductImage::getImageUrl)
+                            .toList()
+            );
         }
 
-        return productResponseDTO;
+        return builder.build();
     }
+
 
     public PagedResponse<ProductFullResponse> searchProducts(String name, String barcode,
                                                              int page, int size,
@@ -110,7 +171,15 @@ public class ProductServiceImpl implements ProductService {
         Pageable pageable = PageRequest.of(page, size, sort);
         User user = authService.getCurrentUser();
         Page<ProductFullResponse> products = productRepository.findByNameContainingAndBarcodeContaining(user.getId(),name, barcode, pageable)
-                .map(this::toDTO);
+                .map(p -> ProductFullResponse.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .barcode(p.getBarcode())
+                        .weight(p.getWeight())
+                        .width(p.getWidth())
+                        .height(p.getHeight())
+                        .stock(inventoryRepository.sumQuantityByProductId(p.getId()).orElse(0))
+                        .price(p.getPrice()).build() );
         return new PagedResponse<>(
                 products.getContent(),
                 products.getNumber(),
@@ -133,28 +202,8 @@ public class ProductServiceImpl implements ProductService {
                         .build())
                 .toList();
     }
-    public List<ProductFullResponse> top10StockProducts(){
-        return productRepository.findTop10StockProducts(authService.getCurrentUser().getId()).stream().map(this::toDTO).toList();
-    }
 
-    private ProductFullResponse toDTO(Product product) {
-        return ProductFullResponse.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .barcode(product.getBarcode())
-                .weight(product.getWeight())
-                .height(product.getHeight())
-                .length(product.getLength())
-                .width(product.getWidth())
-                .stock(product.getStock())
-                .price(product.getPrice())
-                .imageUrls(product.getProductImages().stream()
-                        .map(ProductImage::getImageUrl)
-                        .toList())
-                .build();
-    }
-
-    public ProductFullResponse updateProduct(Long id, ProductDTO dto) {
+    public ProductFullResponse updateProduct(Long id, ProductInfoDTO dto) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new DataNotFoundException("Product not found"));
 
@@ -173,7 +222,6 @@ public class ProductServiceImpl implements ProductService {
         product.setWidth(dto.getWidth());
         product.setHeight(dto.getHeight());
         product.setLength(dto.getLength());
-        product.setStock(dto.getStock());
         product.setPrice(dto.getPrice());
 
         productRepository.save(product);
@@ -185,7 +233,6 @@ public class ProductServiceImpl implements ProductService {
                 .weight(product.getWeight())
                 .width(product.getWidth())
                 .height(product.getHeight())
-                .stock(product.getStock())
                 .price(product.getPrice()).build();
         if(product.getProductImages() != null){
             productResponseDTO.setImageUrls(product.getProductImages().stream().map(ProductImage::getImageUrl).toList());
@@ -207,6 +254,10 @@ public class ProductServiceImpl implements ProductService {
 
         product.setIsDeleted((byte) 1);
         deleteAllProductImages(product.getId());
+
+        for (Inventory inventory : product.getInventories()){
+            inventory.setIsDeleted((byte) 1);
+        }
         productRepository.save(product);
     }
 
@@ -229,9 +280,10 @@ public class ProductServiceImpl implements ProductService {
 
         String imageUrl = cloudinaryService.uploadFile(file);
 
-        ProductImage image = new ProductImage();
-        image.setImageUrl(imageUrl);
-        image.setProduct(product);
+        ProductImage image = ProductImage.builder()
+                .imageUrl(imageUrl)
+                .product(product)
+                .build();
         return productImageRepository.save(image);
     }
 
@@ -266,6 +318,20 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Product not found"));
         User user = authService.getCurrentUser();
         if (!user.equals(product.getUser())) throw new UnauthorizedAccessException("You are unauthorized to get this Product");
-        return toDTO(product);
+        return ProductFullResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .barcode(product.getBarcode())
+                .stock(inventoryRepository.sumQuantityByProductId(id).orElse(0))
+                .weight(product.getWeight())
+                .width(product.getWidth())
+                .height(product.getHeight())
+                .price(product.getPrice()).build();
+    }
+
+    @Override
+    public List<TopRiskStock> topRiskStockProducts(Long warehouseId, int limit) {
+        User user = authService.getCurrentUser();
+        return productRepository.findTopInventoryRiskProducts(user.getId(),warehouseId,limit);
     }
 }

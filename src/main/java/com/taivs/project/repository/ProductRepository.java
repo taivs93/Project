@@ -1,7 +1,8 @@
 package com.taivs.project.repository;
 
+import com.taivs.project.dto.response.TopRiskStock;
 import com.taivs.project.entity.Product;
-import com.taivs.project.entity.TopRevenueProduct;
+import com.taivs.project.dto.response.TopRevenueProduct;
 import com.taivs.project.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,15 +53,100 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 """, nativeQuery = true)
     List<TopRevenueProduct> findTop10RevenueProducts(@Param("userId") Long userId);
 
+    List<Product> findAllByIdInAndUser(Collection<Long> ids, User user);
+
 
     @Query(value = """
-    SELECT p.*
-    FROM products p
-    WHERE p.is_deleted = 0 AND p.created_by = :userId
-    ORDER BY p.stock DESC
-    LIMIT 10
+    SELECT
+        agg.id AS id,
+        agg.name AS name,
+        agg.stockQty AS stockQty,
+        agg.avgSalesPerDay AS avgSalesPerDay,
+        agg.stockValue AS stockValue,
+        agg.maxStockValue AS maxStockValue,
+        ROUND(
+            CASE
+                WHEN agg.stockQty = 0 THEN 0
+                WHEN agg.avgSalesPerDay = 0 AND DATEDIFF(NOW(), agg.createdAt) <= 7 THEN 50
+                WHEN agg.avgSalesPerDay = 0 THEN 999.99
+                WHEN agg.maxStockValue = 0 THEN agg.stockQty / agg.avgSalesPerDay
+                ELSE (agg.stockQty / agg.avgSalesPerDay) * (agg.stockValue / agg.maxStockValue)
+            END
+        , 2) AS inventoryRiskScore,
+        ROUND(
+            CASE 
+                WHEN agg.avgSalesPerDay = 0 THEN NULL
+                ELSE agg.stockQty / agg.avgSalesPerDay 
+            END
+        , 1) AS daysToSellOut,
+        ROUND(
+            CASE 
+                WHEN agg.maxStockValue = 0 THEN 0
+                ELSE (agg.stockValue / agg.maxStockValue) * 100 
+            END, 1) AS stockValuePercentage
+    FROM (
+        SELECT
+            p.id,
+            p.name,
+            SUM(COALESCE(i.quantity, 0)) AS stockQty,
+            ROUND(
+                COALESCE(SUM(pp.quantity), 0) / 
+                GREATEST(
+                    COALESCE(DATEDIFF(NOW(), p.created_at), 1),
+                    1
+                ),
+            2) AS avgSalesPerDay,
+            (p.price * SUM(COALESCE(i.quantity, 0))) AS stockValue,
+            (
+                SELECT MAX(p2.price * totalInv.quantitySum)
+                FROM products p2
+                JOIN (
+                    SELECT i2.product_id, SUM(i2.quantity) AS quantitySum
+                    FROM inventories i2
+                    JOIN warehouses w2 ON w2.id = i2.warehouse_id
+                    WHERE i2.is_deleted = 0
+                      AND (:warehouseId IS NULL OR w2.id = :warehouseId)
+                    GROUP BY i2.product_id
+                ) totalInv ON p2.id = totalInv.product_id
+                WHERE p2.is_deleted = 0
+                  AND p2.created_by = :userId
+            ) AS maxStockValue,
+            p.created_at AS createdAt
+        FROM products p
+        LEFT JOIN inventories i
+            ON p.id = i.product_id
+            AND i.is_deleted = 0
+        LEFT JOIN warehouses w
+            ON w.id = i.warehouse_id
+            AND (:warehouseId IS NULL OR w.id = :warehouseId)
+        LEFT JOIN package_products pp
+            ON p.id = pp.product_id
+            AND pp.is_deleted = 0
+        LEFT JOIN warehouses wpp
+            ON wpp.id = pp.warehouse_id
+            AND (:warehouseId IS NULL OR wpp.id = :warehouseId)
+        LEFT JOIN packages pk
+            ON pp.package_id = pk.id
+               AND pk.status = 20
+               AND pk.is_deleted = 0
+               AND pk.created_by = :userId
+        WHERE p.is_deleted = 0
+          AND p.created_by = :userId
+        GROUP BY p.id, p.name, p.price, p.created_at
+    ) AS agg
+    ORDER BY 
+        CASE 
+            WHEN agg.stockQty = 0 THEN 0
+            WHEN agg.avgSalesPerDay = 0 THEN 3
+            WHEN inventoryRiskScore >= 60 THEN 2
+            ELSE 1
+        END DESC,
+        inventoryRiskScore DESC
+    LIMIT :limit
     """, nativeQuery = true)
-    List<Product> findTop10StockProducts(@Param("userId") Long userId);
+    List<TopRiskStock> findTopInventoryRiskProducts(
+            @Param("userId") Long userId,
+            @Param("warehouseId") Long warehouseId,
+            @Param("limit") int limit);
 
-    List<Product> findAllByIdInAndUser(Collection<Long> ids, User user);
 }

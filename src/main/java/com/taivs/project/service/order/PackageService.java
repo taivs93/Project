@@ -31,8 +31,6 @@ public interface PackageService {
 
     Double getRevenue(@RequestParam String time);
 
-    PackageResponseDTO findPackageById(Long id);
-
     PagedResponse<PackageResponseDTO> getPackages(Long userId, String customerTel, Long id, int page, int size, String sortField, String sortDirection);
 
     void deleteDraftPackage(Long id);

@@ -11,14 +11,14 @@ spring:
       org.springframework.boot.context.config: DEBUG
 
   datasource:
-    url: jdbc:mariadb://localhost:3306/project_db
+    url: jdbc:mariadb://mariadb:3306/project_db
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:root}
     driver-class-name: org.mariadb.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
     database-platform: org.hibernate.dialect.MariaDBDialect
     properties:
@@ -28,9 +28,17 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
       timeout: 60000
+      connect-timeout: 10000
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+        shutdown-timeout: 200ms
 
 cloudinary:
   cloud_name: ${CLOUDINARY_CLOUD_NAME}
@@ -43,3 +51,9 @@ jwt:
   refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:360000000}
   session-expiration-ms: ${JWT_SESSION_EXPIRATION_MS:1800000}
   encrypt-secret: ${JWT_ENCRYPT_SECRET:1234567890123456}
+
+logging:
+  level:
+    org.springframework.data.redis: DEBUG
+    io.lettuce.core: DEBUG
+    org.springframework.boot.autoconfigure.data.redis: DEBUG

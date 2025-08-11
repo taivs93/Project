@@ -35,8 +35,9 @@ public class User extends BaseEntity {
     @Column(name = "address", nullable = false, length = 400)
     private String address;
 
+    @Builder.Default
     @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1 COMMENT 'status'")
-    private byte status;
+    private byte status = (byte) 0;
 
     @ToString.Exclude
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
