@@ -8,6 +8,7 @@ import com.taivs.project.entity.InventoryTransaction;
 import com.taivs.project.entity.User;
 import com.taivs.project.entity.Warehouse;
 import com.taivs.project.exception.DataNotFoundException;
+import com.taivs.project.exception.MainWarehouseDeleteException;
 import com.taivs.project.exception.ResourceAlreadyExistsException;
 import com.taivs.project.exception.UnauthorizedAccessException;
 import com.taivs.project.repository.WarehouseRepository;
@@ -87,6 +88,7 @@ public class WarehouseServiceImpl implements WarehouseService{
         User user = authService.getCurrentUser();
         Warehouse existsWarehouse = warehouseRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Warehouse not found"));
         if (!existsWarehouse.getUser().equals(user)) throw new UnauthorizedAccessException("Unauthorize to access this warehouse");
+        if (existsWarehouse.getIsMain() == 1) throw new MainWarehouseDeleteException("Main warehouse can not be deleted!");
 
         List<Inventory> inventories = existsWarehouse.getInventories();
         List<InventoryTransaction> inventoryTransactions = existsWarehouse.getInventoryTransactions();

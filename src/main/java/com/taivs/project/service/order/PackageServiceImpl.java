@@ -70,7 +70,7 @@ public class PackageServiceImpl implements PackageService {
 
         List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(warehouseIds.stream().toList(), currentUser.getId());
         if (warehouses.size() != warehouseIds.size()) {
-            throw new UnauthorizedAccessException("Some warehouses not found, deleted, or unauthorized");
+            throw new UnauthorizedAccessException("Warehouses not found, deleted, or unauthorized");
         }
         Map<Long, Warehouse> warehouseMap = warehouses.stream()
                 .collect(Collectors.toMap(Warehouse::getId, Function.identity()));
@@ -268,15 +268,26 @@ public class PackageServiceImpl implements PackageService {
 
     private PackageResponseDTO toResponse(Package pack, boolean includeUserId) {
 
-        List<PackageProductResponseDTO> items = pack.getPackageItems().stream()
-                .map(item -> PackageProductResponseDTO.builder()
-                        .quantity(item.getQuantity())
-                        .productResponseDTO(ProductResponseDTO.builder()
-                                .id(item.getProduct().getId())
-                                .name(item.getProduct().getName())
-                                .build())
-                        .build())
-                .toList();
+        List<PackageProduct> packageProducts = pack.getPackageItems();
+        Map<Long, Integer> groupedItems = new HashMap<>();
+        for (PackageProduct  packageProduct: packageProducts ) {
+            Long key = packageProduct.getProduct().getId();
+            groupedItems.merge(key, packageProduct.getQuantity(), Integer::sum);
+        }
+
+        Set<Long> productIds = groupedItems.keySet();
+
+        List<ProductResponseDTO> productResponseDTOS = productIds.stream()
+                .map(id -> ProductResponseDTO.builder().id(id)
+                        .name(productRepository.findById(id).get().getName())
+                        .build()
+                ).toList();
+
+        List<PackageProductResponseDTO> items = productResponseDTOS.stream().map(
+                productResponseDTO -> {
+                    return PackageProductResponseDTO.builder().productResponseDTO(productResponseDTO)
+                            .quantity(groupedItems.get(productResponseDTO.getId())).build();
+                }).toList();
 
         PackageResponseDTO.PackageResponseDTOBuilder builder = PackageResponseDTO.builder()
                 .id(pack.getId())

@@ -14,6 +14,7 @@ import com.taivs.project.repository.RoleRepository;
 import com.taivs.project.repository.SessionRepository;
 import com.taivs.project.repository.UserRepository;
 
+import com.taivs.project.repository.WarehouseRepository;
 import com.taivs.project.security.encryption.TokenEncryptor;
 import com.taivs.project.security.jwt.JWTUtil;
 import com.taivs.project.service.auth.caching.AuthCachingService;
@@ -172,7 +173,15 @@ public class AuthServiceImpl implements AuthService {
                 .id(new UserRoleId(null,role.getId())).build();
 
         user.setUserRoles(List.of(userRole));
+
+        Warehouse warehouse = Warehouse.builder()
+                .name("Main warehouse")
+                .user(user)
+                .isMain((byte)1)
+                .build();
+
         userRepository.save(user);
+
         return UserResponseDTO.fromEntity(user);
 
     }

@@ -2,14 +2,12 @@ package com.taivs.project.service.inventory;
 
 import com.taivs.project.dto.request.InventoryDTO;
 import com.taivs.project.dto.response.InventoryResponse;
-import com.taivs.project.entity.Inventory;
-import com.taivs.project.entity.Product;
-import com.taivs.project.entity.User;
-import com.taivs.project.entity.Warehouse;
+import com.taivs.project.entity.*;
 import com.taivs.project.exception.DataNotFoundException;
 import com.taivs.project.exception.NotEnoughStockException;
 import com.taivs.project.exception.UnauthorizedAccessException;
 import com.taivs.project.repository.InventoryRepository;
+import com.taivs.project.repository.InventoryTransactionRepository;
 import com.taivs.project.repository.ProductRepository;
 import com.taivs.project.repository.WarehouseRepository;
 import com.taivs.project.service.auth.AuthService;
@@ -31,6 +29,22 @@ public class InventoryServiceImpl implements InventoryService{
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private InventoryTransactionRepository inventoryTransactionRepository;
+
+    private void saveInventoryTransaction(Inventory inventory, Integer quantity, TransactionType type){
+        InventoryTransaction inventoryTransaction = InventoryTransaction.builder()
+                .warehouse(inventory.getWarehouse())
+                .product(inventory.getProduct())
+                .type(type)
+                .quantity(quantity)
+                .resultingQuantity(inventory.getQuantity())
+                .user(inventory.getUser())
+                .build();
+
+        inventoryTransactionRepository.save(inventoryTransaction);
+    }
 
     private Inventory getInventoryIfExistAndAuth(InventoryDTO inventoryDTO){
         User user = authService.getCurrentUser();
@@ -65,6 +79,8 @@ public class InventoryServiceImpl implements InventoryService{
                     .user(user)
                     .build();
         }
+
+        this.saveInventoryTransaction(inventory, inventoryDTO.getQuantity(),TransactionType.IMPORT);
         inventoryRepository.save(inventory);
         return InventoryResponse.builder()
                 .id(inventory.getId())
@@ -84,6 +100,8 @@ public class InventoryServiceImpl implements InventoryService{
 
         inventory.setQuantity(currentQuantity - inventoryDTO.getQuantity());
 
+        this.saveInventoryTransaction(inventory, inventoryDTO.getQuantity(),TransactionType.EXPORT);
+
         inventoryRepository.save(inventory);
 
         return InventoryResponse.builder()
@@ -99,6 +117,8 @@ public class InventoryServiceImpl implements InventoryService{
         Inventory inventory = this.getInventoryIfExistAndAuth(inventoryDTO);
 
         inventory.setQuantity(inventory.getQuantity());
+
+        this.saveInventoryTransaction(inventory, inventoryDTO.getQuantity(),TransactionType.ADJUST);
 
         inventoryRepository.save(inventory);
 

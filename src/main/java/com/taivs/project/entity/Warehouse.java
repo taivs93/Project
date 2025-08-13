@@ -47,6 +47,13 @@ public class Warehouse extends BaseEntity {
     )
     private byte isDeleted = 0;
 
+    @Column(
+            name = "is_main",
+            nullable = false,
+            columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_main'"
+    )
+    private byte isMain = 0;
+
     @OneToMany(mappedBy = "warehouse", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<Inventory> inventories;
 

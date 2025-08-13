@@ -39,7 +39,7 @@ public class CustomerController {
                                                         @RequestParam(required = false) String customerTel){
 
         return ResponseEntity.ok(ResponseDTO.builder().status(200).message("Get list customers successfully")
-                .data(customerService.getListCustomers(page,size,sortField,sortDirection,customerTel)).build());
+                .data(customerService.getListCustomers(page,size,sortField,sortDirection,customerTel).getContent()).build());
     }
 
     @PutMapping("/update-info/{id}")

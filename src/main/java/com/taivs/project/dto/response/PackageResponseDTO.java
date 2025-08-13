@@ -51,5 +51,6 @@ public class PackageResponseDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long userId;
 
+    @JsonProperty("package_items")
     private List<PackageProductResponseDTO> packageItems;
 }

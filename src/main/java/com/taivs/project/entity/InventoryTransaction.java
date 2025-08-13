@@ -34,9 +34,6 @@ public class InventoryTransaction extends BaseEntity {
     @Column(nullable = false)
     private Integer resultingQuantity;
 
-    @Column(length = 500)
-    private String note;
-
     @Column(
             name = "is_deleted",
             nullable = false,

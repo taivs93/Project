@@ -15,7 +15,6 @@ import com.taivs.project.exception.UnauthorizedAccessException;
 import com.taivs.project.repository.CustomerRepository;
 import com.taivs.project.repository.PackageRepository;
 import com.taivs.project.repository.ReportRepository;
-import com.taivs.project.repository.UserRepository;
 import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -92,7 +91,18 @@ public class CustomerServiceImpl implements CustomerService{
     @Override
     public Page<CustomerLiteDTO> getListCustomers(int page, int size, String sortField, String sortDirection, String customerTel) {
         User user = authService.getCurrentUser();
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField));
+        Sort.Direction direction;
+        try {
+            direction = Sort.Direction.fromString(sortDirection);
+        } catch (IllegalArgumentException e) {
+            direction = Sort.Direction.ASC;
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(direction, sortField)
+        );
         Page<Customer> customers = customerRepository.getListCustomer(pageable, user.getId(),customerTel);
         return customers.map(customer -> CustomerLiteDTO.builder().id(customer.getId())
                 .name(customer.getName())
