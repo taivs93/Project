@@ -1,6 +1,5 @@
 package com.taivs.project.controller;
 
-import com.taivs.project.dto.response.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import com.taivs.project.dto.request.LoginRequest;
@@ -8,8 +7,6 @@ import com.taivs.project.dto.request.PasswordChangeRequest;
 import com.taivs.project.dto.request.RefreshRequest;
 import com.taivs.project.dto.request.RegisterRequest;
 import com.taivs.project.dto.response.ResponseDTO;
-import com.taivs.project.dto.response.UserResponseDTO;
-import com.taivs.project.entity.User;
 import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

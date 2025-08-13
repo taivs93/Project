@@ -46,4 +46,11 @@ public interface WarehouseRepository extends JpaRepository<Warehouse,Long> {
             @Param("ids") List<Long> ids,
             @Param("userId") Long userId
     );
+
+    @Query("""
+            SELECT w
+            FROM Warehouse w 
+            WHERE w.user.id = :userId AND w.isMain = 0
+            """)
+    Optional<Warehouse> findMainWarehouseByUserId(@Param("userId") Long userId);
 }

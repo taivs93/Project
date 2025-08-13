@@ -1,6 +1,7 @@
 package com.taivs.project.service.order;
 
-import com.taivs.project.dto.request.InventoryDTO;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.taivs.project.dto.request.*;
 import com.taivs.project.dto.response.*;
 import com.taivs.project.entity.*;
 import com.taivs.project.entity.Package;
@@ -9,18 +10,13 @@ import com.taivs.project.repository.*;
 import com.taivs.project.service.inventory.InventoryService;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.*;
-import com.taivs.project.dto.request.PackageDTO;
-import com.taivs.project.dto.request.PackageProductDTO;
-import com.taivs.project.dto.request.ShipPayer;
 import com.taivs.project.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.taivs.project.service.order.caching.PackageRedisService;
-
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,11 +40,51 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private InventoryRepository inventoryRepository;
     @Autowired private InventoryService inventoryService;
 
+    private void validateForNulls(PackageProductDTO dto) {
+        if (dto.getProductId() == null) {
+            throw new MissingDataException("Product ID must not be null");
+        }
+        if (dto.getWarehouseId() == null) {
+            throw new MissingDataException("Warehouse ID must not be null");
+        }
+        if (dto.getWeight() == null) {
+            throw new MissingDataException("Weight must not be null");
+        }
+        if (dto.getHeight() == null) {
+            throw new MissingDataException("Height must not be null");
+        }
+        if (dto.getLength() == null) {
+            throw new MissingDataException("Length must not be null");
+        }
+        if (dto.getWidth() == null) {
+            throw new MissingDataException("Width must not be null");
+        }
+        if (dto.getPrice() == null) {
+            throw new MissingDataException("Price must not be null");
+        }
+    }
+
+    private Product getAuthorizedProduct(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new DataNotFoundException("Product not found: " + productId));
+
+        Long currentUserId = authService.getCurrentUser().getId();
+        if (!product.getUser().getId().equals(currentUserId)) {
+            throw new UnauthorizedAccessException("Unauthorized product access");
+        }
+        return product;
+    }
+
+    @Transactional
     private List<PackageProduct> itemizePackage(PackageDTO packageDTO, Package pack) {
         User currentUser = authService.getCurrentUser();
 
+        List<PackageProductDTO> itemsWithIds = packageDTO.getPackageItems().stream().filter(
+                p -> p.getProductId() != null
+        ).toList();
+
         Map<String, Integer> groupedItems = new HashMap<>();
-        for (PackageProductDTO item : packageDTO.getPackageItems()) {
+        for (PackageProductDTO item : itemsWithIds) {
             String key = item.getProductId() + "_" + item.getWarehouseId();
             groupedItems.merge(key, item.getQuantity(), Integer::sum);
         }
@@ -66,14 +102,14 @@ public class PackageServiceImpl implements PackageService {
             throw new UnauthorizedAccessException("Some products not found or unauthorized");
         }
         Map<Long, Product> productMap = products.stream()
-                .collect(Collectors.toMap(Product::getId, Function.identity()));
+                .collect(Collectors.toMap(Product::getId, product -> product));
 
         List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(warehouseIds.stream().toList(), currentUser.getId());
         if (warehouses.size() != warehouseIds.size()) {
             throw new UnauthorizedAccessException("Warehouses not found, deleted, or unauthorized");
         }
         Map<Long, Warehouse> warehouseMap = warehouses.stream()
-                .collect(Collectors.toMap(Warehouse::getId, Function.identity()));
+                .collect(Collectors.toMap(Warehouse::getId, warehouse -> warehouse));
 
         List<PackageProduct> items = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : groupedItems.entrySet()) {
@@ -90,42 +126,72 @@ public class PackageServiceImpl implements PackageService {
                     .build());
         }
 
+        List<PackageProductDTO> itemsWithoutId = packageDTO.getPackageItems().stream().filter(
+                p -> !itemsWithIds.contains(p)
+        ).toList();
+
+        for (PackageProductDTO packageProductDTO : itemsWithoutId){
+            this.validateForNulls(packageProductDTO);
+            if (productRepository.existsByNameAndUserId(packageProductDTO.getProductName(), currentUser.getId())) throw new ResourceAlreadyExistsException("Product name already exists");
+            if (productRepository.existsByBarcodeAndUserId(packageProductDTO.getBarcode(),currentUser.getId())) throw new ResourceAlreadyExistsException("Barcode already exists");
+            Warehouse mainWarehouse = warehouseRepository.findMainWarehouseByUserId(currentUser.getId()).orElseThrow(
+                    () -> new DataNotFoundException("Warehouse not found")
+            );
+            Product newProduct = Product.builder()
+                    .name(packageProductDTO.getProductName())
+                    .barcode(packageProductDTO.getBarcode())
+                    .height(packageProductDTO.getHeight())
+                    .length(packageProductDTO.getLength())
+                    .weight(packageProductDTO.getWeight())
+                    .width(packageProductDTO.getWidth())
+                    .price(packageProductDTO.getPrice())
+                    .build();
+
+            PackageProduct packageProduct = PackageProduct.builder()
+                    .warehouse(mainWarehouse)
+                    .product(newProduct)
+                    .quantity(packageProductDTO.getQuantity())
+                    .build();
+            Inventory inventory = Inventory.builder()
+                    .warehouse(mainWarehouse)
+                    .product(newProduct)
+                    .quantity(packageProductDTO.getQuantity())
+                    .user(currentUser)
+                    .build();
+            InventoryTransaction inventoryTransaction = InventoryTransaction.builder()
+                    .warehouse(mainWarehouse)
+                    .product(newProduct)
+                    .quantity(packageProductDTO.getQuantity())
+                    .resultingQuantity(packageProductDTO.getQuantity())
+                    .type(TransactionType.IMPORT)
+                    .user(currentUser)
+                    .build();
+            productRepository.save(newProduct);
+            items.add(packageProduct);
+        }
+
         return items;
     }
-
-
 
     public Double getExtraFee(List<PackageProductDTO> items) {
         double weight = 0;
         for (PackageProductDTO item : items) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new DataNotFoundException("Product not found: " + item.getProductId()));
-
-            User user = authService.getCurrentUser();
-
-            if(!product.getUser().getId().equals(user.getId())) {
-                throw new UnauthorizedAccessException("Unauthorized product access");
-            }
-
-            Double w = productRepository.getWeightById(item.getProductId());
-            if (w == null) throw new DataNotFoundException("Product not found: " + item.getProductId());
-            weight += w*item.getQuantity();
+            if (item.getProductId() != null){
+                Product product = this.getAuthorizedProduct(item.getProductId());
+                Double w = product.getWeight();
+                if (w == null) throw new DataNotFoundException("Product not found");
+                weight += w*item.getQuantity();
+            } else weight += item.getWeight()*item.getQuantity();
         }
         return weight <= 2 ? 0.0 : Math.round((weight - 2) * 10000 * 100.0) / 100.0;
     }
     public Double getValue(List<PackageProductDTO> items) {
         double value = 0;
         for (PackageProductDTO item : items) {
-            Product product = productRepository.findById(item.getProductId()).orElseThrow(() -> new DataNotFoundException("Product not found: " + item.getProductId()));
-            User user = authService.getCurrentUser();
-
-            if(!product.getUser().getId().equals(user.getId())) {
-                throw new UnauthorizedAccessException("Unauthorized product access");
-            }
-
-            Double p = product.getPrice();
-            if (p == null) throw new DataNotFoundException("Product not found: " + item.getProductId());
-            value += p * item.getQuantity();
+            if (item.getProductId() != null){
+                Product product = this.getAuthorizedProduct(item.getProductId());
+                value += product.getPrice() * item.getQuantity();
+            } else value += item.getPrice() * item.getQuantity();
         }
         return Math.round(value * 100.0) / 100.0;
     }

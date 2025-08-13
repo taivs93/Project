@@ -1,6 +1,8 @@
 package com.taivs.project.controller;
 
 import com.taivs.project.dto.request.WarehouseDTO;
+import com.taivs.project.dto.response.InventoryTransactionResponse;
+import com.taivs.project.dto.response.PagedResponse;
 import com.taivs.project.dto.response.ResponseDTO;
 import com.taivs.project.dto.response.WarehouseResponse;
 import com.taivs.project.service.warehouse.WarehouseService;
@@ -75,6 +77,35 @@ public class WarehouseController {
                 .message("Get warehouses successfully")
                 .build());
 
+    }
+
+    @GetMapping("/inventory-transaction/{id}")
+    @PreAuthorize("hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> getInventoryTransactionById(@PathVariable Long id){
+        InventoryTransactionResponse inventoryTransactionResponse = warehouseService.getInventoryTransactionById(id);
+
+        return ResponseEntity.status(200).body(ResponseDTO.builder()
+                        .status(200)
+                        .data(inventoryTransactionResponse)
+                        .message("Get inventory by id: " + id + " successfully!")
+                        .build());
+    }
+
+    @GetMapping("/inventory-transactions")
+    @PreAuthorize("hasRole('SHOP')")
+    public ResponseEntity<ResponseDTO> getInventoryTransactions(@RequestParam(required = false) String warehouseName,
+                                                                @RequestParam(required = false) String productName,
+                                                                @RequestParam(defaultValue = "0") int page,
+                                                                @RequestParam(defaultValue = "20") int size,
+                                                                @RequestParam(defaultValue = "id") String sortField,
+                                                                @RequestParam(defaultValue = "DESC") String sortDirection){
+        PagedResponse<InventoryTransactionResponse> inventories = warehouseService.getListInventoryTransactions(page,size,sortField,sortDirection,warehouseName,productName);
+
+        return ResponseEntity.status(200).body(ResponseDTO.builder()
+                .status(200)
+                .data(inventories)
+                .message("Get inventory transaction successfully!")
+                .build());
     }
 
 }

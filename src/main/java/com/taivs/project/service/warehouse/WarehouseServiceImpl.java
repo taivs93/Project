@@ -2,6 +2,8 @@ package com.taivs.project.service.warehouse;
 
 import com.taivs.project.dto.request.WarehouseDTO;
 import com.taivs.project.dto.response.InventoryResponse;
+import com.taivs.project.dto.response.InventoryTransactionResponse;
+import com.taivs.project.dto.response.PagedResponse;
 import com.taivs.project.dto.response.WarehouseResponse;
 import com.taivs.project.entity.Inventory;
 import com.taivs.project.entity.InventoryTransaction;
@@ -11,10 +13,15 @@ import com.taivs.project.exception.DataNotFoundException;
 import com.taivs.project.exception.MainWarehouseDeleteException;
 import com.taivs.project.exception.ResourceAlreadyExistsException;
 import com.taivs.project.exception.UnauthorizedAccessException;
+import com.taivs.project.repository.InventoryTransactionRepository;
 import com.taivs.project.repository.WarehouseRepository;
 import com.taivs.project.service.auth.AuthService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,6 +34,9 @@ public class WarehouseServiceImpl implements WarehouseService{
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private InventoryTransactionRepository inventoryTransactionRepository;
 
     @Override
     public WarehouseResponse insertWarehouse(WarehouseDTO warehouseDTO) {
@@ -135,6 +145,54 @@ public class WarehouseServiceImpl implements WarehouseService{
                 .name(w.getName())
                 .location(w.getLocation())
                 .build()).toList();
+    }
+
+    @Override
+    public InventoryTransactionResponse getInventoryTransactionById(Long id) {
+        InventoryTransaction inventoryTransaction = inventoryTransactionRepository.findById(id).orElseThrow(
+                () -> new DataNotFoundException("Inventory transaction not found!")
+        );
+
+        if (!inventoryTransaction.getUser().equals(authService.getCurrentUser())) throw new UnauthorizedAccessException("Unauthorize to access this resource");
+
+        return InventoryTransactionResponse.builder()
+                .id(inventoryTransaction.getId())
+                .warehouseName(inventoryTransaction.getWarehouse().getName())
+                .productName(inventoryTransaction.getProduct().getName())
+                .quantity(inventoryTransaction.getQuantity())
+                .resultingQuantity(inventoryTransaction.getResultingQuantity())
+                .type(inventoryTransaction.getType())
+                .createdAt(inventoryTransaction.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    public PagedResponse<InventoryTransactionResponse> getListInventoryTransactions(int page, int size, String sortField, String sortDirection, String warehouseName, String productName) {
+        size = Math.min(size, 10);
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection.toUpperCase()), sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        User user = authService.getCurrentUser();
+
+        Page<InventoryTransactionResponse> inventories = inventoryTransactionRepository
+                .getListInventoryTransactions(pageable,user.getId(),warehouseName,productName)
+                .map(i -> InventoryTransactionResponse.builder()
+                        .id(i.getId())
+                        .warehouseName(i.getWarehouse().getName())
+                        .productName(i.getProduct().getName())
+                        .quantity(i.getQuantity())
+                        .resultingQuantity(i.getResultingQuantity())
+                        .type(i.getType())
+                        .createdAt(i.getCreatedAt())
+                        .build());
+
+        return  new PagedResponse<>(
+                inventories.getContent(),
+                inventories.getNumber(),
+                inventories.getSize(),
+                inventories.getTotalElements(),
+                inventories.getTotalPages(),
+                inventories.isLast()
+        );
     }
 
 

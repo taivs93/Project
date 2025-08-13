@@ -36,7 +36,6 @@ public class InventoryController {
     @PreAuthorize("hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> exportInventory(@Valid @RequestBody InventoryDTO inventoryDTO){
         InventoryResponse inventoryResponse = inventoryService.exportInventory(inventoryDTO);
-
         return ResponseEntity.ok(ResponseDTO.builder()
                 .status(200)
                 .message("Export successfully!")
