@@ -57,20 +57,33 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh-token").permitAll()
                         .requestMatchers("/api/auth/logout").hasAnyRole("SHOP","ADMIN")
                         .requestMatchers("/api/package/get-by-id/**").hasAnyRole("SHOP", "ADMIN")
-                        .requestMatchers("/api/user/get-user-details/{id}").hasAnyRole("SHOP", "ADMIN")
+                        .requestMatchers("/api/user/get-user-details/**").hasAnyRole("SHOP", "ADMIN")
                         .requestMatchers("/api/user/change-name").hasAnyRole("SHOP", "ADMIN")
-                        .requestMatchers("/api/package/get-packages").hasRole("ADMIN")
-                        .requestMatchers("/api/package/{id}/status").hasRole("ADMIN")
-                        .requestMatchers("/api/package/get-packages-of-user/{id}").hasRole("ADMIN")
-                        .requestMatchers("/api/user/active-user/**", "/api/user/deactive-user/**", "/api/user/get-users").hasRole("ADMIN")
-                        .requestMatchers("/api/package/**").hasRole("SHOP")
-                        .requestMatchers("/api/dashboard/**").hasRole("SHOP")
-                        .requestMatchers("/api/product/**").hasRole("SHOP")
-                        .requestMatchers("/api/report/**").hasRole("SHOP")
-                        .requestMatchers("/api/customer/**").hasRole("SHOP")
-                        .requestMatchers("/api/user/**").hasRole("SHOP")
+
+                        .requestMatchers(
+                                "/api/package/get-packages",
+                                "/api/package/{id}/status",
+                                "/api/package/get-packages-of-user/**",
+                                "/api/user/active-user/**",
+                                "/api/user/deactive-user/**",
+                                "/api/user/get-users"
+                        ).hasRole("ADMIN")
+
+
+                        .requestMatchers(
+                                "/api/package/**",
+                                "/api/dashboard/**",
+                                "/api/product/**",
+                                "/api/report/**",
+                                "/api/customer/**",
+                                "/api/user/**",
+                                "/api/warehouse/**",
+                                "/api/inventory/**"
+                        ).hasRole("SHOP")
+
                         .anyRequest().authenticated()
                 )
+
 
                 .exceptionHandling(exceptionHandling -> exceptionHandling
                         .authenticationEntryPoint(customAuthenticationEntryPoint)

@@ -24,7 +24,7 @@ public interface WarehouseRepository extends JpaRepository<Warehouse,Long> {
     @Query("""
             SELECT w
             FROM Warehouse w
-            WHERE w.user = :userId AND w.isDeleted = 0
+            WHERE w.user.id = :userId AND w.isDeleted = 0
             """)
     List<Warehouse> getWarehouses(@Param("userId") Long userId);
 
@@ -50,7 +50,7 @@ public interface WarehouseRepository extends JpaRepository<Warehouse,Long> {
     @Query("""
             SELECT w
             FROM Warehouse w 
-            WHERE w.user.id = :userId AND w.isMain = 0
+            WHERE w.user.id = :userId AND w.isMain = 1
             """)
     Optional<Warehouse> findMainWarehouseByUserId(@Param("userId") Long userId);
 }

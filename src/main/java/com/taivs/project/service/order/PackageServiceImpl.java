@@ -40,13 +40,19 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private InventoryRepository inventoryRepository;
     @Autowired private InventoryService inventoryService;
 
+    private void checkDuplicateAndExistsBarcodeOrName(List<PackageProductDTO> packageProductDTOS,Long userId){
+        List<String> productNames = packageProductDTOS.stream().map(PackageProductDTO::getProductName).toList();
+        List<String> barcodes = packageProductDTOS.stream().map(PackageProductDTO::getBarcode).toList();
+        if (productNames.size() != new HashSet<>(productNames).size()) {
+            throw new DuplicateDataException("Product name duplicate");
+        }
+        if (barcodes.size() != new HashSet<>(barcodes).size()) throw new DuplicateDataException("Barcode duplicate");
+        if (productRepository.existsByNameInAndUserId(productNames,userId)) throw new ResourceAlreadyExistsException("Product name already exists");
+        if (productRepository.existsByBarcodesInAndUserId(barcodes,userId)) throw new ResourceAlreadyExistsException("Barcode already exists");
+
+    }
+
     private void validateForNulls(PackageProductDTO dto) {
-        if (dto.getProductId() == null) {
-            throw new MissingDataException("Product ID must not be null");
-        }
-        if (dto.getWarehouseId() == null) {
-            throw new MissingDataException("Warehouse ID must not be null");
-        }
         if (dto.getWeight() == null) {
             throw new MissingDataException("Weight must not be null");
         }
@@ -129,11 +135,10 @@ public class PackageServiceImpl implements PackageService {
         List<PackageProductDTO> itemsWithoutId = packageDTO.getPackageItems().stream().filter(
                 p -> !itemsWithIds.contains(p)
         ).toList();
+        this.checkDuplicateAndExistsBarcodeOrName(itemsWithoutId,currentUser.getId());
 
         for (PackageProductDTO packageProductDTO : itemsWithoutId){
             this.validateForNulls(packageProductDTO);
-            if (productRepository.existsByNameAndUserId(packageProductDTO.getProductName(), currentUser.getId())) throw new ResourceAlreadyExistsException("Product name already exists");
-            if (productRepository.existsByBarcodeAndUserId(packageProductDTO.getBarcode(),currentUser.getId())) throw new ResourceAlreadyExistsException("Barcode already exists");
             Warehouse mainWarehouse = warehouseRepository.findMainWarehouseByUserId(currentUser.getId()).orElseThrow(
                     () -> new DataNotFoundException("Warehouse not found")
             );
@@ -152,12 +157,14 @@ public class PackageServiceImpl implements PackageService {
                     .product(newProduct)
                     .quantity(packageProductDTO.getQuantity())
                     .build();
+
             Inventory inventory = Inventory.builder()
                     .warehouse(mainWarehouse)
                     .product(newProduct)
                     .quantity(packageProductDTO.getQuantity())
                     .user(currentUser)
                     .build();
+
             InventoryTransaction inventoryTransaction = InventoryTransaction.builder()
                     .warehouse(mainWarehouse)
                     .product(newProduct)
@@ -166,7 +173,17 @@ public class PackageServiceImpl implements PackageService {
                     .type(TransactionType.IMPORT)
                     .user(currentUser)
                     .build();
+
+            newProduct.setPackageProducts(List.of(packageProduct));
+            newProduct.setInventories(List.of(inventory));
+            newProduct.setInventoryTransactions(List.of(inventoryTransaction));
+
+            mainWarehouse.getInventories().add(inventory);
+            mainWarehouse.getInventoryTransactions().add(inventoryTransaction);
+            mainWarehouse.getPackageProducts().add(packageProduct);
+
             productRepository.save(newProduct);
+            warehouseRepository.save(mainWarehouse);
             items.add(packageProduct);
         }
 

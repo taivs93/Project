@@ -179,7 +179,7 @@ public class AuthServiceImpl implements AuthService {
                 .user(user)
                 .isMain((byte)1)
                 .build();
-
+        user.setWarehouses(List.of(warehouse));
         userRepository.save(user);
 
         return UserResponseDTO.fromEntity(user);
