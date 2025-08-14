@@ -18,7 +18,7 @@ public interface InventoryTransactionRepository extends JpaRepository<InventoryT
 
     @Query("""
             SELECT i
-            FROM InventoryTransaction i WHERE i.user.id = :userId
+            FROM InventoryTransaction i WHERE i.warehouse.user.id = :userId
              AND (i.warehouse.name = :warehouseName OR i.warehouse.name IS NULL)
               AND (i.product.name = :productName OR i.product.name IS NULL)
                AND i.isDeleted = 0

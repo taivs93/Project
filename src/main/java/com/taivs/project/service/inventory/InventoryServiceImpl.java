@@ -40,7 +40,6 @@ public class InventoryServiceImpl implements InventoryService{
                 .type(type)
                 .quantity(quantity)
                 .resultingQuantity(inventory.getQuantity())
-                .user(inventory.getUser())
                 .build();
 
         inventoryTransactionRepository.save(inventoryTransaction);
@@ -51,7 +50,7 @@ public class InventoryServiceImpl implements InventoryService{
 
         Inventory inventory = inventoryRepository.findByWarehouseIdAndProductId(inventoryDTO.getWarehouseId(), inventoryDTO.getProductId()).orElseThrow(() -> new DataNotFoundException("Inventory not found"));
 
-        if (!inventory.getUser().equals(user)) throw new UnauthorizedAccessException("Can not access this resource");
+        if (!inventory.getWarehouse().getUser().equals(user)) throw new UnauthorizedAccessException("Can not access this resource");
 
         return inventory;
     }
@@ -76,7 +75,6 @@ public class InventoryServiceImpl implements InventoryService{
                     .warehouse(warehouse)
                     .product(product)
                     .quantity(inventoryDTO.getQuantity())
-                    .user(user)
                     .build();
         }
 

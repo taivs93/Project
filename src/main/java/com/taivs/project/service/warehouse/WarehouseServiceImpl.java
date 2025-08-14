@@ -153,7 +153,7 @@ public class WarehouseServiceImpl implements WarehouseService{
                 () -> new DataNotFoundException("Inventory transaction not found!")
         );
 
-        if (!inventoryTransaction.getUser().equals(authService.getCurrentUser())) throw new UnauthorizedAccessException("Unauthorize to access this resource");
+        if (inventoryTransaction.getWarehouse().getUser().equals(authService.getCurrentUser())) throw new UnauthorizedAccessException("Unauthorize to access this resource");
 
         return InventoryTransactionResponse.builder()
                 .id(inventoryTransaction.getId())

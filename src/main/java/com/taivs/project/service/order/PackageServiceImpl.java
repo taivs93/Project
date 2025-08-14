@@ -1,6 +1,5 @@
 package com.taivs.project.service.order;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.taivs.project.dto.request.*;
 import com.taivs.project.dto.response.*;
 import com.taivs.project.entity.*;
@@ -39,6 +38,7 @@ public class PackageServiceImpl implements PackageService {
     @Autowired private WarehouseRepository warehouseRepository;
     @Autowired private InventoryRepository inventoryRepository;
     @Autowired private InventoryService inventoryService;
+    @Autowired private InventoryTransactionRepository inventoryTransactionRepository;
 
     private void checkDuplicateAndExistsBarcodeOrName(List<PackageProductDTO> packageProductDTOS,Long userId){
         List<String> productNames = packageProductDTOS.stream().map(PackageProductDTO::getProductName).toList();
@@ -47,9 +47,9 @@ public class PackageServiceImpl implements PackageService {
             throw new DuplicateDataException("Product name duplicate");
         }
         if (barcodes.size() != new HashSet<>(barcodes).size()) throw new DuplicateDataException("Barcode duplicate");
+
         if (productRepository.existsByNameInAndUserId(productNames,userId)) throw new ResourceAlreadyExistsException("Product name already exists");
         if (productRepository.existsByBarcodesInAndUserId(barcodes,userId)) throw new ResourceAlreadyExistsException("Barcode already exists");
-
     }
 
     private void validateForNulls(PackageProductDTO dto) {
@@ -136,7 +136,6 @@ public class PackageServiceImpl implements PackageService {
                 p -> !itemsWithIds.contains(p)
         ).toList();
         this.checkDuplicateAndExistsBarcodeOrName(itemsWithoutId,currentUser.getId());
-
         for (PackageProductDTO packageProductDTO : itemsWithoutId){
             this.validateForNulls(packageProductDTO);
             Warehouse mainWarehouse = warehouseRepository.findMainWarehouseByUserId(currentUser.getId()).orElseThrow(
@@ -150,6 +149,7 @@ public class PackageServiceImpl implements PackageService {
                     .weight(packageProductDTO.getWeight())
                     .width(packageProductDTO.getWidth())
                     .price(packageProductDTO.getPrice())
+                    .user(currentUser)
                     .build();
 
             PackageProduct packageProduct = PackageProduct.builder()
@@ -162,7 +162,6 @@ public class PackageServiceImpl implements PackageService {
                     .warehouse(mainWarehouse)
                     .product(newProduct)
                     .quantity(packageProductDTO.getQuantity())
-                    .user(currentUser)
                     .build();
 
             InventoryTransaction inventoryTransaction = InventoryTransaction.builder()
@@ -171,7 +170,6 @@ public class PackageServiceImpl implements PackageService {
                     .quantity(packageProductDTO.getQuantity())
                     .resultingQuantity(packageProductDTO.getQuantity())
                     .type(TransactionType.IMPORT)
-                    .user(currentUser)
                     .build();
 
             newProduct.setPackageProducts(List.of(packageProduct));
@@ -184,10 +182,15 @@ public class PackageServiceImpl implements PackageService {
 
             productRepository.save(newProduct);
             warehouseRepository.save(mainWarehouse);
+
             items.add(packageProduct);
         }
 
         return items;
+    }
+
+    public Double getShipFee(List<PackageProductDTO> items){
+        return 30000 + getExtraFee(items);
     }
 
     public Double getExtraFee(List<PackageProductDTO> items) {
@@ -213,18 +216,18 @@ public class PackageServiceImpl implements PackageService {
         return Math.round(value * 100.0) / 100.0;
     }
     public Double getTotalFee(PackageDTO dto) {
-        double base = dto.getPickMoney() + getExtraFee(dto.getPackageItems());
+        double base = dto.getPickMoney() + this.getExtraFee(dto.getPackageItems());
         return Math.round((dto.getShipPayer() == ShipPayer.SHOP ? base : base + 30000) * 100.0) / 100.0;
     }
 
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
-
+        if (dto.getPickMoney() > this.getValue(dto.getPackageItems())) throw new InvalidPickMoneyException("Pick money must be smaller or equal value");
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
-                .shipMoney(30000)
+                .shipMoney(this.getShipFee(dto.getPackageItems()))
                 .value(getValue(dto.getPackageItems()))
                 .extraFee(getExtraFee(dto.getPackageItems()))
                 .totalFee(getTotalFee(dto))

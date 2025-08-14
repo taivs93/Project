@@ -28,10 +28,12 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
             @Param("productId") Long productId
     );
 
-    @Query(value = """
-            SELECT *
-            FROM inventories
-            WHERE user_id = :userId AND is_deleted = 0
-            """,nativeQuery = true)
+    @Query(
+            """
+            SELECT i
+            FROM Inventory i
+            WHERE i.warehouse.user.id = :userId AND i.isDeleted = 0
+        """
+    )
     Optional<Inventory> findById(@Param("userId") Long userId);
 }

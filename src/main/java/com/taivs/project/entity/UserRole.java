@@ -15,12 +15,12 @@ public class UserRole extends BaseEntity{
     @EmbeddedId
     private UserRoleId id = new UserRoleId();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("roleId")
     @JoinColumn(name = "role_id")
     private Role role;

@@ -82,7 +82,6 @@ public class ProductServiceImpl implements ProductService {
             Inventory newInventory = Inventory.builder()
                     .warehouse(warehouse)
                     .product(product)
-                    .user(user)
                     .quantity(quantity)
                     .build();
 

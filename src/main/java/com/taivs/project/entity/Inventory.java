@@ -35,7 +35,4 @@ public class Inventory extends BaseEntity {
     )
     private byte isDeleted = 0;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User user;
 }

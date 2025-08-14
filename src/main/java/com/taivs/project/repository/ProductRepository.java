@@ -148,19 +148,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("limit") int limit);
 
     @Query("""
-    SELECT CASE WHEN COUNT(p) > 0 THEN TRUE ELSE FALSE END
+    SELECT CASE WHEN COUNT(p) > 0 THEN TRUE 
+           ELSE FALSE END
     FROM Product p
     WHERE p.name IN :names
       AND p.user.id = :userId
+      AND p.isDeleted = 0
 """)
     boolean existsByNameInAndUserId(@Param("names") List<String> names,
                                     @Param("userId") Long userId);
 
     @Query("""
-    SELECT CASE WHEN COUNT(p) > 0 THEN TRUE ELSE FALSE END
+    SELECT CASE WHEN COUNT(p) > 0 THEN TRUE
+        ELSE FALSE END
     FROM Product p
-    WHERE p.name IN :barcodes
+    WHERE p.barcode IN :barcodes
       AND p.user.id = :userId
+      AND p.isDeleted = 0
 """)
     boolean existsByBarcodesInAndUserId(@Param("barcodes") List<String> barcodes,
                                     @Param("userId") Long userId);
