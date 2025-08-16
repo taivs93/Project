@@ -6,7 +6,7 @@ public interface AuthCachingService {
 
     void saveSession(Session session, long durationMs);
 
-    Long getUserIdFromSession(String sessionId);
+    String getTelFromSession(String sessionId);
 
     boolean isSessionExist(String sessionId);
 

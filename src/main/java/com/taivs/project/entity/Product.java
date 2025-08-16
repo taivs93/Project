@@ -59,7 +59,7 @@ public class Product extends BaseEntity {
     @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'status'")
     private byte status = 0;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne()
     @JoinColumn(name = "created_by")
     private User user;
 

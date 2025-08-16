@@ -38,7 +38,6 @@ public class AuthController {
     @PostMapping("/logout")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SHOP')")
     public ResponseEntity<ResponseDTO> logout(HttpServletRequest request) {
-        System.out.println("Get into controller");
         authService.logout(request);
         return ResponseEntity.ok().body(
                 ResponseDTO.builder().status(200).message("Logout successfully").build()

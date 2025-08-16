@@ -3,6 +3,7 @@ package com.taivs.project.dto.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public interface TopRiskStock {
+
     @JsonProperty("id")
     Long getId();
 
@@ -10,7 +11,7 @@ public interface TopRiskStock {
     String getName();
 
     @JsonProperty("stock_qty")
-    Integer getStockQty();
+    Long getStockQty();
 
     @JsonProperty("avg_sales_per_day")
     Double getAvgSalesPerDay();
@@ -31,8 +32,5 @@ public interface TopRiskStock {
     Double getStockValuePercentage();
 
     @JsonProperty("total_sales")
-    Integer getTotalSales();
-
-    @JsonProperty("sales_days")
-    Integer getSalesDays();
+    Long getTotalSales();
 }

@@ -83,7 +83,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             CASE 
                 WHEN agg.maxStockValue = 0 THEN 0
                 ELSE (agg.stockValue / agg.maxStockValue) * 100 
-            END, 1) AS stockValuePercentage
+            END, 1) AS stockValuePercentage,
+        agg.totalSales AS totalSales
     FROM (
         SELECT
             p.id,
@@ -111,12 +112,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                 WHERE p2.is_deleted = 0
                   AND p2.created_by = :userId
             ) AS maxStockValue,
-            p.created_at AS createdAt
+            p.created_at AS createdAt,
+            SUM(COALESCE(pp.quantity, 0)) AS totalSales
         FROM products p
-        LEFT JOIN inventories i
+        JOIN inventories i
             ON p.id = i.product_id
             AND i.is_deleted = 0
-        LEFT JOIN warehouses w
+        JOIN warehouses w
             ON w.id = i.warehouse_id
             AND (:warehouseId IS NULL OR w.id = :warehouseId)
         LEFT JOIN package_products pp
@@ -141,11 +143,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         END DESC,
         inventoryRiskScore DESC
     LIMIT :limit
-    """, nativeQuery = true)
-    List<TopRiskStock> findTopInventoryRiskProducts(
-            @Param("userId") Long userId,
-            @Param("warehouseId") Long warehouseId,
-            @Param("limit") int limit);
+""", nativeQuery = true)
+    List<TopRiskStock> findTopRiskStock(@Param("userId") Long userId, @Param("warehouseId") Long warehouseId, @Param("limit") int limit);
+
 
     @Query("""
     SELECT CASE WHEN COUNT(p) > 0 THEN TRUE 

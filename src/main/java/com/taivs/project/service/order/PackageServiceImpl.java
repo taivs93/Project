@@ -295,7 +295,10 @@ public class PackageServiceImpl implements PackageService {
         User user = authService.getCurrentUser();
 
         System.out.println("Prepare to get version");
-        String version = packageRedisService.getUserCacheVersion(user.getId());
+        String version;
+
+        version = packageRedisService.getUserCacheVersion(user.getId());
+
         String cacheKey = String.format("search::%d::%s::%d::%d::%d::%s::%s::v%s",
                 user.getId(),
                 customerTel != null ? customerTel : "null",
@@ -304,9 +307,9 @@ public class PackageServiceImpl implements PackageService {
                 version
         );
 
+        Page<PackageResponseDTO> cached ;
+        cached = packageRedisService.getCachedPackages(cacheKey, pageable);
 
-        System.out.println("Prepare to caching");
-        Page<PackageResponseDTO> cached = packageRedisService.getCachedPackages(cacheKey, pageable);
         if (cached != null) return new PagedResponse<>(
                 cached.getContent(),
                 cached.getNumber(),

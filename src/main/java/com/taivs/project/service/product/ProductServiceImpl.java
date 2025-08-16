@@ -334,6 +334,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<TopRiskStock> topRiskStockProducts(Long warehouseId, int limit) {
         User user = authService.getCurrentUser();
-        return productRepository.findTopInventoryRiskProducts(user.getId(),warehouseId,limit);
+        return productRepository.findTopRiskStock(user.getId(),warehouseId,limit);
     }
 }

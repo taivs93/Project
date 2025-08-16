@@ -101,33 +101,24 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     public RefreshTokenResponse refresh(RefreshRequest request) {
-
         String rawRefreshToken = tokenEncryptor.decrypt(request.getRefreshToken());
-
         if(!tokenService
                 .isTokenValid(rawRefreshToken)) throw new InvalidRefreshToken("Invalid refresh token");
-
         String tokenType = tokenService
                 .extractTokenType(rawRefreshToken);
         if(!"REFRESH".equals(tokenType)) throw new InvalidTokenType("Invalid token type");
-
         String userId = tokenService
                 .extractUserId(rawRefreshToken);
         String sessionId = tokenService
                 .extractSessionId(rawRefreshToken);
 
         User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new DataNotFoundException("User Id not found."));
-
         Session currentSession = sessionRepository.findActiveSessionByUserId(user.getId()).orElseThrow(() -> new DataNotFoundException("Session not found"));
 
         if (!currentSession.getId().equals(sessionId)) throw new InvalidSessionException("Invalid session id");
-
         Session session = sessionRepository.findSessionById(sessionId).get();
-
         sessionRepository.delete(session);
-
         Session newSession = sessionService.createSession(user);
-
         String newRefreshToken = tokenService
                 .generateRefreshToken(user, newSession.getId());
         String newAccessToken = tokenService

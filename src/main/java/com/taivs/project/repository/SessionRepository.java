@@ -12,7 +12,7 @@ import java.util.Optional;
 
 
 @Repository
-public interface SessionRepository extends JpaRepository<Session, Long> {
+public interface SessionRepository extends JpaRepository<Session,String> {
 
     @Query("""
         SELECT s FROM Session s
@@ -34,5 +34,13 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     LIMIT 1
 """, nativeQuery = true)
     Optional<Session> findActiveSessionByUserId(@Param("userId") Long userId);
+
+    @Query("""
+    SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END
+    FROM Session s
+    WHERE s.id = :id
+      AND s.expiresAt > CURRENT_TIMESTAMP
+""")
+    boolean existsByIdAndActive(@Param("id") String id);
 
 }

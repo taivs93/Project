@@ -63,7 +63,7 @@ public class Warehouse extends BaseEntity {
     @OneToMany(mappedBy = "warehouse", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private List<PackageProduct> packageProducts;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne()
     @JoinColumn(name = "created_by")
     private User user;
 
