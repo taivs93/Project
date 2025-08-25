@@ -11,4 +11,8 @@ public class RefreshRequest {
     @JsonProperty(value = "refresh_token")
     private String refreshToken;
 
+    @NotBlank(message = "Device id must not be null")
+    @JsonProperty(value = "device_id")
+    private String deviceId;
+
 }

@@ -19,7 +19,7 @@ import java.util.List;
 @Builder
 @DynamicInsert
 @DynamicUpdate
-public class Package extends BaseEntity{
+public class Package extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,24 +51,38 @@ public class Package extends BaseEntity{
     @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
     private Integer status = 0;
 
-
-    @Column(name = "is_draft",nullable = false,columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_draft'")
+    @Column(name = "is_draft", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_draft'")
     private byte isDraft;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
     private User user;
 
-    @Column(name = "customer_tel",nullable = false)
+    @Column(name = "customer_tel", nullable = false)
     private String customerTel;
 
-    @Column(name = "customer_name",nullable = false)
+    @Column(name = "customer_name", nullable = false)
     private String customerName;
 
-    @Column(name = "customer_address",nullable = false)
+    @Column(name = "customer_address", nullable = false)
     private String customerAddress;
 
-    @OneToMany(fetch = FetchType.LAZY,mappedBy = "aPackage", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
+    @OneToMany(
+            fetch = FetchType.LAZY,
+            mappedBy = "aPackage",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     @Builder.Default
     private List<PackageProduct> packageItems = new ArrayList<>();
+
+    public void addPackageProduct(PackageProduct item) {
+        packageItems.add(item);
+        item.setAPackage(this);
+    }
+
+    public void removePackageProduct(PackageProduct item) {
+        packageItems.remove(item);
+        item.setAPackage(null);
+    }
 }

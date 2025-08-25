@@ -1,9 +1,6 @@
 package com.taivs.project.service.auth;
 
-import com.taivs.project.dto.request.LoginRequest;
-import com.taivs.project.dto.request.PasswordChangeRequest;
-import com.taivs.project.dto.request.RefreshRequest;
-import com.taivs.project.dto.request.RegisterRequest;
+import com.taivs.project.dto.request.*;
 import com.taivs.project.dto.response.LoginResponse;
 import com.taivs.project.dto.response.RefreshTokenResponse;
 import com.taivs.project.dto.response.UserResponseDTO;
@@ -16,7 +13,7 @@ public interface AuthService {
 
     RefreshTokenResponse refresh(RefreshRequest refreshRequest);
 
-    void logout(HttpServletRequest request);
+    void logout(LogoutRequestDTO request);
 
     UserResponseDTO register(RegisterRequest req);
 

@@ -21,11 +21,11 @@ public class ProductImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "image_url", nullable = false, length = 250, columnDefinition = "varchar(250) COMMENT 'image_url'")
+    @Column(name = "image_url")
     private String imageUrl;
 
     @Builder.Default
-    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'")
+    @Column(name = "is_deleted")
     private int isDeleted = 0;
 
     @ManyToOne()

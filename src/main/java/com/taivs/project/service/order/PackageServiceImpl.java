@@ -82,12 +82,12 @@ public class PackageServiceImpl implements PackageService {
     }
 
     @Transactional
-    private List<PackageProduct> itemizePackage(PackageDTO packageDTO, Package pack) {
+    private void itemizePackage(PackageDTO packageDTO, Package pack) {
         User currentUser = authService.getCurrentUser();
 
-        List<PackageProductDTO> itemsWithIds = packageDTO.getPackageItems().stream().filter(
-                p -> p.getProductId() != null
-        ).toList();
+        List<PackageProductDTO> itemsWithIds = packageDTO.getPackageItems().stream()
+                .filter(p -> p.getProductId() != null)
+                .toList();
 
         Map<String, Integer> groupedItems = new HashMap<>();
         for (PackageProductDTO item : itemsWithIds) {
@@ -110,37 +110,43 @@ public class PackageServiceImpl implements PackageService {
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, product -> product));
 
-        List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(warehouseIds.stream().toList(), currentUser.getId());
+        List<Warehouse> warehouses = warehouseRepository.findAllByIdIn(
+                warehouseIds.stream().toList(),
+                currentUser.getId()
+        );
         if (warehouses.size() != warehouseIds.size()) {
             throw new UnauthorizedAccessException("Warehouses not found, deleted, or unauthorized");
         }
         Map<Long, Warehouse> warehouseMap = warehouses.stream()
                 .collect(Collectors.toMap(Warehouse::getId, warehouse -> warehouse));
 
-        List<PackageProduct> items = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : groupedItems.entrySet()) {
             String[] ids = entry.getKey().split("_");
             Long productId = Long.valueOf(ids[0]);
             Long warehouseId = Long.valueOf(ids[1]);
             Integer quantity = entry.getValue();
 
-            items.add(PackageProduct.builder()
-                    .aPackage(pack)
+            PackageProduct newPackageProduct = PackageProduct.builder()
                     .warehouse(warehouseMap.get(warehouseId))
                     .product(productMap.get(productId))
                     .quantity(quantity)
-                    .build());
+                    .build();
+
+            pack.addPackageProduct(newPackageProduct);
         }
 
-        List<PackageProductDTO> itemsWithoutId = packageDTO.getPackageItems().stream().filter(
-                p -> !itemsWithIds.contains(p)
-        ).toList();
-        this.checkDuplicateAndExistsBarcodeOrName(itemsWithoutId,currentUser.getId());
-        for (PackageProductDTO packageProductDTO : itemsWithoutId){
+        List<PackageProductDTO> itemsWithoutId = packageDTO.getPackageItems().stream()
+                .filter(p -> p.getProductId() == null)
+                .toList();
+
+        this.checkDuplicateAndExistsBarcodeOrName(itemsWithoutId, currentUser.getId());
+
+        Warehouse mainWarehouse = warehouseRepository.findMainWarehouseByUserId(currentUser.getId())
+                .orElseThrow(() -> new DataNotFoundException("Warehouse not found"));
+
+        for (PackageProductDTO packageProductDTO : itemsWithoutId) {
             this.validateForNulls(packageProductDTO);
-            Warehouse mainWarehouse = warehouseRepository.findMainWarehouseByUserId(currentUser.getId()).orElseThrow(
-                    () -> new DataNotFoundException("Warehouse not found")
-            );
+
             Product newProduct = Product.builder()
                     .name(packageProductDTO.getProductName())
                     .barcode(packageProductDTO.getBarcode())
@@ -158,36 +164,11 @@ public class PackageServiceImpl implements PackageService {
                     .quantity(packageProductDTO.getQuantity())
                     .build();
 
-            Inventory inventory = Inventory.builder()
-                    .warehouse(mainWarehouse)
-                    .product(newProduct)
-                    .quantity(packageProductDTO.getQuantity())
-                    .build();
-
-            InventoryTransaction inventoryTransaction = InventoryTransaction.builder()
-                    .warehouse(mainWarehouse)
-                    .product(newProduct)
-                    .quantity(packageProductDTO.getQuantity())
-                    .resultingQuantity(packageProductDTO.getQuantity())
-                    .type(TransactionType.IMPORT)
-                    .build();
-
-            newProduct.setPackageProducts(List.of(packageProduct));
-            newProduct.setInventories(List.of(inventory));
-            newProduct.setInventoryTransactions(List.of(inventoryTransaction));
-
-            mainWarehouse.getInventories().add(inventory);
-            mainWarehouse.getInventoryTransactions().add(inventoryTransaction);
-            mainWarehouse.getPackageProducts().add(packageProduct);
-
-            productRepository.save(newProduct);
-            warehouseRepository.save(mainWarehouse);
-
-            items.add(packageProduct);
+            pack.addPackageProduct(packageProduct);
         }
-
-        return items;
     }
+
+
 
     public Double getShipFee(List<PackageProductDTO> items){
         return 30000 + getExtraFee(items);
@@ -223,7 +204,10 @@ public class PackageServiceImpl implements PackageService {
     @Transactional
     public PackageResponseDTO createDraftPackage(PackageDTO dto) {
         User user = authService.getCurrentUser();
-        if (dto.getPickMoney() > this.getValue(dto.getPackageItems())) throw new InvalidPickMoneyException("Pick money must be smaller or equal value");
+        if (dto.getPickMoney() > this.getValue(dto.getPackageItems())) {
+            throw new InvalidPickMoneyException("Pick money must be smaller or equal value");
+        }
+
         Package newPackage = Package.builder()
                 .address(dto.getAddress())
                 .pickMoney(dto.getPickMoney())
@@ -238,10 +222,8 @@ public class PackageServiceImpl implements PackageService {
                 .user(user)
                 .isDraft((byte) 1)
                 .build();
+        itemizePackage(dto, newPackage);
 
-        List<PackageProduct> items = itemizePackage(dto, newPackage);
-
-        newPackage.setPackageItems(items);
         packageRepository.save(newPackage);
 
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
@@ -262,7 +244,8 @@ public class PackageServiceImpl implements PackageService {
         }
 
         customerRepository.save(customer);
-        return toResponse(newPackage,false);
+
+        return toResponse(newPackage, false);
     }
 
     @Transactional
@@ -295,10 +278,7 @@ public class PackageServiceImpl implements PackageService {
         User user = authService.getCurrentUser();
 
         System.out.println("Prepare to get version");
-        String version;
-
-        version = packageRedisService.getUserCacheVersion(user.getId());
-
+        String version = packageRedisService.getUserCacheVersion(user.getId());
         String cacheKey = String.format("search::%d::%s::%d::%d::%d::%s::%s::v%s",
                 user.getId(),
                 customerTel != null ? customerTel : "null",
@@ -400,8 +380,6 @@ public class PackageServiceImpl implements PackageService {
 
     @Transactional
     public PackageResponseDTO submitDraft(Long draftId) {
-        User user = authService.getCurrentUser();
-
         Package draft = packageRepository.findById(draftId)
                 .orElseThrow(() -> new DataNotFoundException("Draft not found"));
 
@@ -441,7 +419,6 @@ public class PackageServiceImpl implements PackageService {
         if (pack.getIsDraft() != 1) {
             throw new InvalidDraftPackageException("Only draft packages can be updated");
         }
-
         Customer customer = customerRepository.findByTel(dto.getCustomerTel()).stream()
                 .filter(c -> c.getUser().equals(user))
                 .findFirst()
@@ -451,27 +428,24 @@ public class PackageServiceImpl implements PackageService {
         customer.setTel(dto.getCustomerTel());
         customer.setAddress(dto.getAddress());
         customerRepository.save(customer);
-
         pack.setAddress(dto.getAddress());
         pack.setPickMoney(dto.getPickMoney());
-        pack.setShipMoney(30000.0);
+        pack.setShipMoney(this.getShipFee(dto.getPackageItems()));
         pack.setValue(getValue(dto.getPackageItems()));
         pack.setExtraFee(getExtraFee(dto.getPackageItems()));
         pack.setTotalFee(getTotalFee(dto));
         pack.setShipPayer(dto.getShipPayer());
         pack.setCustomerTel(dto.getCustomerTel());
         pack.setCustomerName(dto.getCustomerName());
-        pack.setCustomerTel(dto.getCustomerTel());
-
-        packageProductRepository.deleteAll(pack.getPackageItems());
-
-        List<PackageProduct> newItems = itemizePackage(dto,pack);
-
         pack.getPackageItems().clear();
-        pack.getPackageItems().addAll(newItems);
+
+        itemizePackage(dto, pack);
+
         packageRepository.save(pack);
-        return toResponse(pack,false);
+
+        return toResponse(pack, false);
     }
+
 
     public PackageResponseDTO getPackageById(Long id){
         Package aPackage = packageRepository.findById(id).orElseThrow(() -> new DataNotFoundException("Package not found"));

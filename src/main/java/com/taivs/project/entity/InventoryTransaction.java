@@ -25,13 +25,13 @@ public class InventoryTransaction extends BaseEntity {
     private Warehouse warehouse;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "type")
     private TransactionType type;
 
-    @Column(nullable = false)
+    @Column(name = "quantity")
     private Integer quantity;
 
-    @Column(nullable = false)
+    @Column(name = "resulting_quantity")
     private Integer resultingQuantity;
 
     @Column(

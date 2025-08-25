@@ -30,9 +30,7 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
-
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
         template.setHashKeySerializer(new StringRedisSerializer());
@@ -43,7 +41,6 @@ public class RedisConfig {
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(redisHost, redisPort);
-
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .clientName("my-spring-app")
                 .commandTimeout(Duration.ofMillis(timeoutMs))

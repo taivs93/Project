@@ -23,20 +23,20 @@ public class User extends BaseEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(name = "tel", nullable = false, unique = true, length = 10)
+    @Column(name = "tel")
     private String tel;
 
-    @Column(name = "password", nullable = false, length = 250)
+    @Column(name = "password")
     private String password;
 
-    @Column(name = "name", nullable = false, length = 250)
+    @Column(name = "name")
     private String name;
 
-    @Column(name = "address", nullable = false, length = 400)
+    @Column(name = "address")
     private String address;
 
     @Builder.Default
-    @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1 COMMENT 'status'")
+    @Column(name = "status")
     private byte status = (byte) 0;
 
     @ToString.Exclude
@@ -54,10 +54,6 @@ public class User extends BaseEntity {
     @ToString.Exclude
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Report> reports;
-
-    @ToString.Exclude
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user", orphanRemoval = true, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    private List<Session> sessions;
 
     @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE},orphanRemoval = true, fetch = FetchType.EAGER)
     private List<UserRole> userRoles;

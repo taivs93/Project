@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -17,7 +18,7 @@ import java.util.List;
 @Builder
 @DynamicInsert
 @DynamicUpdate
-@ToString(exclude = {"user", "productImages", "inventories", "packageProducts"})
+@ToString(exclude = {"user", "productImages", "inventories", "packageProducts", "inventoryTransactions"})
 public class Product extends BaseEntity {
 
     @Id
@@ -25,53 +26,78 @@ public class Product extends BaseEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 250)
+    @Column(name = "name")
     private String name;
 
-    @Column(name = "barcode", nullable = false, length = 250)
+    @Column(name = "barcode")
     private String barcode;
 
-    @Column(name = "weight", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'weight'")
+    @Column(name = "weight")
     @PositiveOrZero
     private Double weight;
 
-    @Column(name = "height", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'height'")
+    @Column(name = "height")
     @PositiveOrZero
     private Double height;
 
-    @Column(name = "length", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'length'")
+    @Column(name = "length")
     @PositiveOrZero
     private Double length;
 
-    @Column(name = "width", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'width'")
+    @Column(name = "width")
     @PositiveOrZero
     private Double width;
 
-    @Column(name = "price", nullable = false, columnDefinition = "DOUBLE DEFAULT 0 COMMENT 'price'")
+    @Column(name = "price")
     @PositiveOrZero
-    private Double price = (double) 0;
+    @Builder.Default
+    private Double price = 0.0;
 
     @Builder.Default
-    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'")
+    @Column(name = "is_deleted")
     private byte isDeleted = 0;
 
     @Builder.Default
-    @Column(name = "status", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'status'")
+    @Column(name = "status")
     private byte status = 0;
 
-    @ManyToOne()
+    @ManyToOne
     @JoinColumn(name = "created_by")
     private User user;
 
-    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<ProductImage> productImages;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ProductImage> productImages = new ArrayList<>();
 
-    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<Inventory> inventories;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Inventory> inventories = new ArrayList<>();
 
-    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<PackageProduct> packageProducts;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PackageProduct> packageProducts = new ArrayList<>();
 
-    @OneToMany(mappedBy = "product", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
-    private List<InventoryTransaction> inventoryTransactions;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<InventoryTransaction> inventoryTransactions = new ArrayList<>();
+
+    public void addPackageProduct(PackageProduct packageProduct) {
+        packageProducts.add(packageProduct);
+        packageProduct.setProduct(this);
+    }
+
+    public void addInventory(Inventory inventory) {
+        inventories.add(inventory);
+        inventory.setProduct(this);
+    }
+
+    public void addProductImage(ProductImage image) {
+        productImages.add(image);
+        image.setProduct(this);
+    }
+
+    public void addInventoryTransaction(InventoryTransaction transaction) {
+        inventoryTransactions.add(transaction);
+        transaction.setProduct(this);
+    }
 }

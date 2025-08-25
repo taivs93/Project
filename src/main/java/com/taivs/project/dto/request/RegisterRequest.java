@@ -1,6 +1,7 @@
 package com.taivs.project.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.taivs.project.validation.passwordMatches.PasswordMatches;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import com.taivs.project.validation.password.ValidPassword;
 import com.taivs.project.validation.phone.ValidPhone;
 
 @Getter
+@PasswordMatches
 public class RegisterRequest {
 
     @NotEmpty(message = "Tel is required")

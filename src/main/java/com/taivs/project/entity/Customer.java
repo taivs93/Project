@@ -25,20 +25,20 @@ public class Customer extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 250)
+    @Column(name = "name")
     private String name;
 
-    @Column(name = "tel", nullable = false, length = 10)
+    @Column(name = "tel")
     private String tel;
 
-    @Column(name = "address",nullable = false,length = 100)
+    @Column(name = "address")
     private String address;
 
     @Builder.Default
-    @Column(name = "status", nullable = false, columnDefinition = "INTEGER DEFAULT 0 COMMENT 'status'")
+    @Column(name = "status")
     private Integer deleteStatus = 0;
 
-    @Column(name = "type",nullable = false)
+    @Column(name = "type")
     @Enumerated(EnumType.STRING)
     CustomerType type;
 

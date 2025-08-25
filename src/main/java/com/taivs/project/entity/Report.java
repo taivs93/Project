@@ -22,7 +22,7 @@ public class Report extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "description", nullable = false, length = 250)
+    @Column(name = "description")
     private String description;
 
     @ManyToOne()

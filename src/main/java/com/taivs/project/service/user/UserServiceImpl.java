@@ -1,7 +1,7 @@
 package com.taivs.project.service.user;
 
 import com.taivs.project.exception.UnauthorizedAccessException;
-import com.taivs.project.repository.SessionRepository;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.taivs.project.dto.response.UserResponseDTO;

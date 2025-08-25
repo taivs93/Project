@@ -1,30 +1,19 @@
 package com.taivs.project.service.auth;
 
-import com.taivs.project.dto.request.LoginRequest;
-import com.taivs.project.dto.request.PasswordChangeRequest;
-import com.taivs.project.dto.request.RefreshRequest;
-import com.taivs.project.dto.request.RegisterRequest;
+import com.taivs.project.dto.request.*;
 import com.taivs.project.dto.response.LoginResponse;
 import com.taivs.project.dto.response.RefreshTokenResponse;
-import com.taivs.project.dto.response.ResponseDTO;
 import com.taivs.project.dto.response.UserResponseDTO;
 import com.taivs.project.entity.*;
 import com.taivs.project.exception.*;
 import com.taivs.project.repository.RoleRepository;
-import com.taivs.project.repository.SessionRepository;
 import com.taivs.project.repository.UserRepository;
-
-import com.taivs.project.repository.WarehouseRepository;
-import com.taivs.project.security.encryption.TokenEncryptor;
 import com.taivs.project.security.jwt.JWTUtil;
-import com.taivs.project.service.auth.caching.AuthCachingService;
-import com.taivs.project.service.session.SessionService;
-import com.taivs.project.service.token.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,8 +21,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -46,25 +38,22 @@ public class AuthServiceImpl implements AuthService {
     private UserRepository userRepository;
 
     @Autowired
-    private TokenService tokenService;
-
-    @Autowired
     private RoleRepository roleRepository;
-
-    @Autowired
-    private SessionRepository sessionRepository;
-
-    @Autowired
-    private SessionService sessionService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private TokenEncryptor tokenEncryptor;
+    private RedisTemplate<String,Object> redisTemplate;
 
     @Autowired
-    private AuthCachingService authCachingService;
+    private JWTUtil jwtUtil;
+
+    @Value("${jwt.refresh-expiration-ms}")
+    private long refreshExpirationMs;
+
+    @Value("${jwt.access-expiration-ms}")
+    private long accessExpirationMs;
 
     @Value("${jwt.session-expiration-ms}")
     private long durationMs;
@@ -76,69 +65,82 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("Tel not found: " + tel));
     }
 
+    @Override
     @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
-        System.out.println("start authenticating");
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getTel(),loginRequest.getPassword()));
+
+        authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getTel(), loginRequest.getPassword())
+        );
 
         User user = userRepository.findByTel(loginRequest.getTel())
                 .orElseThrow(() -> new DataNotFoundException("Tel not found"));
 
-        System.out.println("Checking");
-        sessionRepository.deleteAllByUserId(user.getId());
-        System.out.println("Read session.");
-        Session session = sessionService.createSession(user);
+        String deviceId = loginRequest.getDeviceId();
+        String currentAccessToken = Objects.requireNonNull(redisTemplate.opsForValue().get("token:" + user.getId() + ":" + deviceId)).toString();
+        String currentRefreshToken = Objects.requireNonNull(Objects.requireNonNull(redisTemplate.opsForValue().get("refresh:" + user.getId() + ":" + deviceId)).toString());
 
-        authCachingService.saveSession(session,this.durationMs);
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentAccessToken);
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentRefreshToken);
 
-        String accessToken = tokenService.generateAccessToken(user, session.getId());
-        String refreshToken = tokenService.generateRefreshToken(user,session.getId());
-        System.out.println(accessToken);
-        System.out.println(refreshToken);
-        return LoginResponse.builder().accessToken(accessToken).refreshToken(refreshToken)
-                .userResponseDTO(UserResponseDTO.fromEntity(user)).build();
+        String accessToken = jwtUtil.generateAccessToken(user.getId().toString(), deviceId);
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString(), deviceId);
+
+        redisTemplate.opsForValue().set("refresh_token:" + user.getId() + ":" + deviceId, refreshToken, refreshExpirationMs, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set("token:" + user.getId() + deviceId,accessToken,accessExpirationMs,TimeUnit.MILLISECONDS);
+
+        return LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userResponseDTO(UserResponseDTO.fromEntity(user))
+                .build();
     }
 
+    @Override
     @Transactional
     public RefreshTokenResponse refresh(RefreshRequest request) {
-        String rawRefreshToken = tokenEncryptor.decrypt(request.getRefreshToken());
-        if(!tokenService
-                .isTokenValid(rawRefreshToken)) throw new InvalidRefreshToken("Invalid refresh token");
-        String tokenType = tokenService
-                .extractTokenType(rawRefreshToken);
-        if(!"REFRESH".equals(tokenType)) throw new InvalidTokenType("Invalid token type");
-        String userId = tokenService
-                .extractUserId(rawRefreshToken);
-        String sessionId = tokenService
-                .extractSessionId(rawRefreshToken);
+        User user = this.getCurrentUser();
+        String deviceId = request.getDeviceId();
 
-        User user = userRepository.findById(Long.parseLong(userId)).orElseThrow(() -> new DataNotFoundException("User Id not found."));
-        Session currentSession = sessionRepository.findActiveSessionByUserId(user.getId()).orElseThrow(() -> new DataNotFoundException("Session not found"));
+        Object refreshToken = redisTemplate.opsForValue().get("refresh:" + user.getId() + ":" + deviceId);
+        if (refreshToken == null) throw new DataNotFoundException("Refresh token not found");
+        if (!refreshToken.toString().equals(request.getRefreshToken())) throw new InvalidRefreshToken("Invalid refresh token");
 
-        if (!currentSession.getId().equals(sessionId)) throw new InvalidSessionException("Invalid session id");
-        Session session = sessionRepository.findSessionById(sessionId).get();
-        sessionRepository.delete(session);
-        Session newSession = sessionService.createSession(user);
-        String newRefreshToken = tokenService
-                .generateRefreshToken(user, newSession.getId());
-        String newAccessToken = tokenService
-                .generateAccessToken(user, newSession.getId());
+        String currentAccessToken = Objects.requireNonNull(redisTemplate.opsForValue().get("token:" + user.getId() + ":" + deviceId)).toString();
+        String currentRefreshToken = Objects.requireNonNull(Objects.requireNonNull(redisTemplate.opsForValue().get("refresh:" + user.getId() + ":" + deviceId)).toString());
 
-        return RefreshTokenResponse.builder().newRefreshToken(newRefreshToken).newAccessToken(newAccessToken).userResponseDTO(UserResponseDTO.fromEntity(user)).build();
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentAccessToken);
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentRefreshToken);
+
+        String newAccessToken = jwtUtil.generateAccessToken(user.getId().toString(), deviceId);
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getId().toString(), deviceId);
+
+        redisTemplate.opsForValue().set("refresh_token:" + user.getId() + ":" + deviceId, newRefreshToken, refreshExpirationMs, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set("token:" + user.getId() + deviceId,newAccessToken,accessExpirationMs,TimeUnit.MILLISECONDS);
+
+        UserResponseDTO userResponse = UserResponseDTO.builder().tel(user.getTel())
+                .name(user.getName())
+                .id(user.getId())
+                .address(user.getAddress())
+                .status(user.getStatus())
+                .build();
+
+        return RefreshTokenResponse.builder()
+                .userResponseDTO(userResponse)
+                .newAccessToken(newAccessToken)
+                .newRefreshToken(newRefreshToken)
+                .build();
     }
 
-    public void logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid Authorization header");
-        }
+    public void logout(LogoutRequestDTO request) {
+        User user = this.getCurrentUser();
+        String deviceId = request.getDeviceId();
 
-        String encryptedToken = authHeader.substring(7);
-        String rawToken = tokenEncryptor.decrypt(encryptedToken);
-        String sessionId = tokenService.extractSessionId(rawToken);
+        String currentAccessToken = Objects.requireNonNull(redisTemplate.opsForValue().get("token:" + user.getId() + ":" + deviceId)).toString();
+        String currentRefreshToken = Objects.requireNonNull(Objects.requireNonNull(redisTemplate.opsForValue().get("refresh:" + user.getId() + ":" + deviceId)).toString());
 
-        sessionRepository.findSessionById(sessionId)
-                .ifPresent(sessionRepository::delete);
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentAccessToken);
+        redisTemplate.opsForValue().set("blacklist_token:" + user.getId() + ":" + deviceId,currentRefreshToken);
     }
 
     @Transactional
@@ -147,8 +149,6 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByTel(req.getTel())) {
             throw new ResourceAlreadyExistsException("Tel already registered");
         }
-
-        if (!req.getPassword().equals(req.getRetypePassword())) throw new InvalidPasswordException("Passwords don't match");
 
         Role role = roleRepository.findByName("SHOP").orElseThrow(() -> new DataNotFoundException("Role not found"));
 
@@ -180,19 +180,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void changePassword(PasswordChangeRequest req) {
         User user = getCurrentUser();
-
-        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
-            throw new InvalidCredentialException("Wrong old password");
-        }
-
-        if(req.getNewPassword().equals(req.getOldPassword())){
-            throw new InvalidPasswordException("Invalid new password");
-        }
-
+        if (!passwordEncoder.matches(req.getOldPassword(),user.getPassword())) throw new InvalidPasswordException("Password not match");
         user.setPassword(passwordEncoder.encode(req.getNewPassword()));
-        userRepository.save(user);
-
-        sessionRepository.deleteAllByUserId(user.getId());
+        redisTemplate.opsForValue().set("TOKEN_IAT_AVL:" + user.getId(), System.currentTimeMillis());
     }
 }
 

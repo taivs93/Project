@@ -7,12 +7,12 @@ import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Table(name = "package_products")
-@ToString(exclude = {"aPackage", "product"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @Builder
+@ToString(exclude = {"aPackage", "product"})
 @DynamicInsert
 @DynamicUpdate
 public class PackageProduct {
@@ -21,7 +21,7 @@ public class PackageProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "quantity", nullable = false)
+    @Column(name = "quantity")
     private int quantity;
 
     @ManyToOne()

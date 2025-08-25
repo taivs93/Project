@@ -14,9 +14,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String tel) throws UsernameNotFoundException {
-        return userRepository.findByTel(tel)
+    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
+        Long id = Long.parseLong(userId);
+
+        return userRepository.findById(id)
                 .map(UserDetailsImpl::new)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with tel: " + tel));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

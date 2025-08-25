@@ -6,9 +6,11 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
 import java.security.Key;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JWTUtil {
@@ -27,47 +29,41 @@ public class JWTUtil {
     @PostConstruct
     public void init() {
         if (secretKeyRaw == null) {
-            System.err.println("JWT secret key not injected!");
-        } else {
-            System.out.println("JWT secret key injected OK");
-            this.key = Keys.hmacShaKeyFor(secretKeyRaw.getBytes());
+            throw new IllegalArgumentException("JWT secret key not injected!");
         }
+        this.key = Keys.hmacShaKeyFor(secretKeyRaw.getBytes());
     }
 
-    public String generateAccessToken(String userId, String sessionId) {
-        System.out.println("JWT Generate");
-        return generateToken(userId, sessionId, "ACCESS", accessExpMs);
+    public String generateAccessToken(String userId, String deviceId) {
+        return generateToken(userId, deviceId, "ACCESS", accessExpMs);
     }
 
-    public String generateRefreshToken(String userId, String sessionId) {
-        return generateToken(userId, sessionId, "REFRESH", refreshExpMs);
+    public String generateRefreshToken(String userId, String deviceId) {
+        return generateToken(userId, deviceId, "REFRESH", refreshExpMs);
     }
 
-    private String generateToken(String userId, String sessionId, String type, long expirationMs) {
+    private String generateToken(String userId, String deviceId, String type, long expirationMs) {
+        long currentTimeMillis = System.currentTimeMillis();
+        Date now = new Date(currentTimeMillis);
+        Date expiryDate = new Date(currentTimeMillis + expirationMs);
 
-        System.out.println("Go to generateToken method()");
-        Date now = new Date();
-        System.out.println("create expiryDate");
-        Date expiryDate = new Date(now.getTime() + expirationMs);
-        System.out.println("start build");
-        String jwt = Jwts.builder()
+        return Jwts.builder()
                 .setSubject(userId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .claim("sid", sessionId)
+                .setId(UUID.randomUUID().toString())
+                .claim("iat_millis", currentTimeMillis)
+                .claim("deviceId", deviceId)
                 .claim("type", type)
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
-        System.out.println(jwt);
-        return jwt;
-
     }
 
     public boolean isTokenValid(String token) {
         try {
             extractAllClaims(token);
             return true;
-        } catch (Exception ex) {
+        } catch (JwtException | IllegalArgumentException ex) {
             return false;
         }
     }
@@ -80,16 +76,25 @@ public class JWTUtil {
                 .getBody();
     }
 
-
     public String extractUserId(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    public String extractSessionId(String token) {
-        return extractAllClaims(token).get("sid", String.class);
+    public String extractJti(String token) {
+        return extractAllClaims(token).getId();
+    }
+
+    public String extractDeviceId(String token) {
+        return extractAllClaims(token).get("deviceId", String.class);
     }
 
     public String extractTokenType(String token) {
         return extractAllClaims(token).get("type", String.class);
     }
+
+    public Date extractExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
+    }
+
+    public long extractIAT(String token) {return extractAllClaims(token).get("iat_millis",long.class);}
 }

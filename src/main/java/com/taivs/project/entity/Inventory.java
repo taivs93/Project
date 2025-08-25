@@ -25,13 +25,11 @@ public class Inventory extends BaseEntity {
     private Warehouse warehouse;
 
 
-    @Column(nullable = false, columnDefinition = "INT DEFAULT 0 COMMENT 'Current stock'")
+    @Column(name = "quantity")
     private Integer quantity;
 
     @Column(
-            name = "is_deleted",
-            nullable = false,
-            columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'"
+            name = "is_deleted"
     )
     private byte isDeleted = 0;
 

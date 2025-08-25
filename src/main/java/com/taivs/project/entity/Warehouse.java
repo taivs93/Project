@@ -34,23 +34,19 @@ public class Warehouse extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "name")
     private String name;
 
-    @Column(length = 500)
+    @Column(name = "location")
     private String location;
 
     @Column(
-            name = "is_deleted",
-            nullable = false,
-            columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_deleted'"
+            name = "is_deleted"
     )
     private byte isDeleted = 0;
 
     @Column(
-            name = "is_main",
-            nullable = false,
-            columnDefinition = "TINYINT(1) DEFAULT 0 COMMENT 'is_main'"
+            name = "is_main"
     )
     private byte isMain = 0;
 
